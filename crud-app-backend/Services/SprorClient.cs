@@ -7,7 +7,7 @@ namespace crud_app_backend.Bot.Services
     /// </summary>
     public class SprorClient : ISprorClient
     {
-        private const string ContName = "Saudi Arabia";
+        private const string ContName = "Malaysia";
 
         private readonly IHttpClientFactory _factory;
         private readonly ILogger<SprorClient> _logger;

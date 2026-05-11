@@ -53,7 +53,7 @@ namespace crud_app_backend.Bot.Services
                 Text("description", req.Description ?? "");
                 Text("location", req.Location);
                 Text("cartItems", req.CartItems);
-                Text("ticket_category", "UAE_Chatbot");
+                Text("ticket_category", "Malaysia_Chatbot");
                 Text("ticket_type", req.TicketType);
 
                 // ── Voice files → voice_file[] (actual binary bytes) ──────────

@@ -306,9 +306,9 @@ namespace crud_app_backend.Bot.Services
                       $"✅ *नमस्ते, {displayOwner}!* स्वागत है");
 
             return s.T(
-                $"{greeting}\n*PRAN-RFL UAE Sales Support*\n\n{BuildMainMenuBody("en")}",
-                $"{greeting}\n*PRAN-RFL UAE Sales Support*\n\n{BuildMainMenuBody("bn")}",
-                $"{greeting}\n*PRAN-RFL UAE Sales Support*\n\n{BuildMainMenuBody("hi")}");
+                $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("en")}",
+                $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("bn")}",
+                $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("hi")}");
         }
 
         // ── Returns the owner portion of "OwnerName | SiteName", or empty string ─
@@ -324,7 +324,7 @@ namespace crud_app_backend.Bot.Services
             try
             {
                 var token = _config["Spror:BearerToken"] ?? "224|IEcNubBv4Z9LoXpngVuHthRrSDdIlD0B4RGxNFqT";
-                var contName = _config["Spror:ContName"] ?? "United Arab Emirates";
+                var contName = _config["Spror:ContName"] ?? "Malaysia";
                 var baseUrl = _config["Spror:BaseUrl"] ?? "https://spror.prgfms.com/api/v1";
 
                 var client = _httpFactory.CreateClient();
