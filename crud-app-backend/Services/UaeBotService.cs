@@ -186,6 +186,8 @@ namespace crud_app_backend.Bot.Services
                 "AWAITING_LANG" => await HandleLangAsync(s, msg),
                 "AWAITING_SHOP_CODE" => await HandleShopCodeAsync(s, msg),
                 "MAIN_MENU" => await HandleMainMenu(s, msg),
+                "AWAITING_ORDER_CHANNEL" => await HandleOrderChannelAsync(s, msg),   // ← NEW
+                "AWAITING_RETURN_CHANNEL" => await HandleReturnChannelAsync(s, msg),  // ← NEW
                 "AWAITING_ORDER_CONFIRM" => await HandleOrderConfirmAsync(s, msg),
                 "AWAITING_RETURN_DETAILS" => await HandleMediaDetailsAsync(s, msg, "return"),
                 "AWAITING_RETURN_CONFIRM" => await HandleReturnConfirmAsync(s, msg),
@@ -417,7 +419,32 @@ namespace crud_app_backend.Bot.Services
         // FLOW 1 — PLACE ORDER
         // ─────────────────────────────────────────────────────────────────────
 
+        // Entry point from main menu — ask channel first
         private string StartPlaceOrder(UaeSession s)
+        {
+            Transition(s, "AWAITING_ORDER_CHANNEL");
+            return s.T(
+                "🛒 *How would you like to place your order?*\n\n" +
+                "1️⃣  Support Agent\n" +
+                "2️⃣  Website\n\n" +
+                "👉 Reply *1* or *2*.\n" +
+                "Send *0* to go back to main menu",
+
+                "🛒 *আপনি কীভাবে অর্ডার দিতে চান?*\n\n" +
+                "1️⃣  সাপোর্ট এজেন্ট\n" +
+                "2️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1* বা *2* পাঠান।\n" +
+                "মূল মেনুতে ফিরতে *0* পাঠান",
+
+                "🛒 *आप अपना ऑर्डर कैसे देना चाहते हैं?*\n\n" +
+                "1️⃣  सपोर्ट एजेंट\n" +
+                "2️⃣  वेबसाइट\n\n" +
+                "👉 *1* या *2* भेजें।\n" +
+                "मुख्य मेनू पर जाने के लिए *0* भेजें");
+        }
+
+        // Called after user selects "1 — Support Agent"
+        private string StartPlaceOrderDirect(UaeSession s)
         {
             Transition(s, "AWAITING_ORDER_CONFIRM");
             return s.T(
@@ -440,10 +467,80 @@ namespace crud_app_backend.Bot.Services
                 "👉 मुख्य मेनू पर जाने के लिए *0* भेजें");
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // CHANNEL SELECTION (shared for Order + Return)
+        // ─────────────────────────────────────────────────────────────────────
+
+        private string BuildChannelPrompt(UaeSession s) =>
+            s.T(
+                "How would you like to proceed?\n\n" +
+                "1️⃣  Support Agent\n" +
+                "2️⃣  Website\n\n" +
+                "👉 Reply *1* or *2*.\n" +
+                "Send *0* to go back to main menu",
+
+                "আপনি কীভাবে এগিয়ে যেতে চান?\n\n" +
+                "1️⃣  সাপোর্ট এজেন্ট\n" +
+                "2️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1* বা *2* পাঠান।\n" +
+                "মূল মেনুতে ফিরতে *0* পাঠান",
+
+                "आप कैसे आगे बढ़ना चाहते हैं?\n\n" +
+                "1️⃣  सपोर्ट एजेंट\n" +
+                "2️⃣  वेबसाइट\n\n" +
+                "👉 *1* या *2* भेजें।\n" +
+                "मुख्य मेनू पर जाने के लिए *0* भेजें");
+
+        private Task<string> HandleOrderChannelAsync(UaeSession s, UaeIncomingMessage msg)
+        {
+            if (msg.MsgType != "text") return Task.FromResult(BuildChannelPrompt(s));
+            if (msg.RawText == "0") return Task.FromResult(BuildMainMenu(s));
+
+            if (msg.RawText == "2")
+            {
+                Transition(s, "MAIN_MENU");
+                return Task.FromResult(s.T(
+                 $"🌐 *Place your order on our website:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                    "👉 Send *menu* for Main Menu",
+                   $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                    "👉 *menu* — মূল মেনু",
+                  $"🌐 *हमारी वेबसाइट पर ऑर्डर करें:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                    "👉 *menu* — मुख्य मेनू"));
+            }
+
+            if (msg.RawText == "1")
+                return Task.FromResult(StartPlaceOrderDirect(s));
+
+            return Task.FromResult(BuildChannelPrompt(s));
+        }
+
+        private Task<string> HandleReturnChannelAsync(UaeSession s, UaeIncomingMessage msg)
+        {
+            if (msg.MsgType != "text") return Task.FromResult(BuildChannelPrompt(s));
+            if (msg.RawText == "0") return Task.FromResult(BuildMainMenu(s));
+
+            if (msg.RawText == "2")
+            {
+                Transition(s, "MAIN_MENU");
+                return Task.FromResult(s.T(
+                  $"🌐 *Submit your return request on our website:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                    "👉 Send *menu* for Main Menu",
+                  $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                    "👉 *menu* — মূল মেনু",
+                   $"🌐 *हमारी वेबसाइट पर वापसी अनुरोध करें:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                    "👉 *menu* — मुख्य मेनू"));
+            }
+
+            if (msg.RawText == "1")
+                return Task.FromResult(StartReturnDirect(s));
+
+            return Task.FromResult(BuildChannelPrompt(s));
+        }
+
         private async Task<string> HandleOrderConfirmAsync(UaeSession s, UaeIncomingMessage msg)
         {
             if (msg.RawText == "n" || msg.RawText == "0") return BuildMainMenu(s);
-            if (msg.RawText != "y") return StartPlaceOrder(s);
+            if (msg.RawText != "y") return StartPlaceOrderDirect(s);
 
             var req = new UaeCrmRequest
             {
@@ -482,7 +579,32 @@ namespace crud_app_backend.Bot.Services
         // FLOW 2 — RETURN / REPLACEMENT
         // ─────────────────────────────────────────────────────────────────────
 
+        // Entry point from main menu — ask channel first
         private string StartReturn(UaeSession s)
+        {
+            Transition(s, "AWAITING_RETURN_CHANNEL");
+            return s.T(
+                "🔄 *How would you like to proceed?*\n\n" +
+                "1️⃣  Support Agent\n" +
+                "2️⃣  Website\n\n" +
+                "👉 Reply *1* or *2*.\n" +
+                "Send *0* to go back to main menu",
+
+                "🔄 *আপনি কীভাবে এগিয়ে যেতে চান?*\n\n" +
+                "1️⃣  সাপোর্ট এজেন্ট\n" +
+                "2️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1* বা *2* পাঠান।\n" +
+                "মূল মেনুতে ফিরতে *0* পাঠান",
+
+                "🔄 *आप कैसे आगे बढ़ना चाहते हैं?*\n\n" +
+                "1️⃣  सपोर्ट एजेंट\n" +
+                "2️⃣  वेबसाइट\n\n" +
+                "👉 *1* या *2* भेजें।\n" +
+                "मुख्य मेनू पर जाने के लिए *0* भेजें");
+        }
+
+        // Called after user selects "1 — Support Agent"
+        private string StartReturnDirect(UaeSession s)
         {
             ClearMedia(s);
             Transition(s, "AWAITING_RETURN_DETAILS");
@@ -743,9 +865,6 @@ namespace crud_app_backend.Bot.Services
                     $"❌ विफल।\n{result.Error}");
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // WELCOME WITH LOGO
-        // ─────────────────────────────────────────────────────────────────────
 
         private async Task SendWelcomeAsync(string phone, CancellationToken ct = default)
         {
@@ -755,16 +874,14 @@ namespace crud_app_backend.Bot.Services
         }
 
         private static string LangPrompt() =>
-            "👋 Hi! I'm *PRAN-RFL UAE Sales Support*\n\n" +
+            "👋 Hi! I'm *PRAN-RFL Malaysia Sales Support*\n\n" +
             "Please choose your language:\n\n" +
             "1️⃣  English\n" +
             "2️⃣  বাংলা\n" +
             "3️⃣  हिंदी\n\n" +
             "👉 Reply *1*, *2* or *3*.";
 
-        // ─────────────────────────────────────────────────────────────────────
-        // MEDIA SAVE
-        // ─────────────────────────────────────────────────────────────────────
+ 
 
         private async Task<string?> SaveMediaToDiskAsync(
             string messageId, string mediaId, string mimeType,
@@ -847,10 +964,6 @@ namespace crud_app_backend.Bot.Services
                 return null;
             }
         }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // SESSION CACHE
-        // ─────────────────────────────────────────────────────────────────────
 
         private async Task<UaeSession> LoadSessionAsync(string phone)
         {
