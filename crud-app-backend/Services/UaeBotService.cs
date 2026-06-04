@@ -237,7 +237,7 @@ namespace crud_app_backend.Bot.Services
             // has state=AWAITING_SHOP_CODE (Transition mutated it above), so the next
             // message will load the correct state from cache.
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
-            var shopCodeImageUrl = $"{baseUrl}/images/shopcode.jpeg";
+            var shopCodeImageUrl = $"{baseUrl}/images/mal_shopcode.png";
 
             var caption = s.T(
                 "✅ Language set to *English*.\n\n" +
@@ -500,11 +500,11 @@ namespace crud_app_backend.Bot.Services
             {
                 Transition(s, "MAIN_MENU");
                 return Task.FromResult(s.T(
-                 $"🌐 *Place your order on our website:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                 $"🌐 *Place your order on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 Send *menu* for Main Menu",
-                   $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                   $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — মূল মেনু",
-                  $"🌐 *हमारी वेबसाइट पर ऑर्डर करें:*\nhttp://spror.prgfms.com/?order=1&shopCode={s.ShopCode}\n\n" +
+                  $"🌐 *हमारी वेबसाइट पर ऑर्डर करें:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — मुख्य मेनू"));
             }
 
@@ -523,11 +523,11 @@ namespace crud_app_backend.Bot.Services
             {
                 Transition(s, "MAIN_MENU");
                 return Task.FromResult(s.T(
-                  $"🌐 *Submit your return request on our website:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                  $"🌐 *Submit your return request on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 Send *menu* for Main Menu",
-                  $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                  $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — মূল মেনু",
-                   $"🌐 *हमारी वेबसाइट पर वापसी अनुरोध करें:*\nhttp://spror.prgfms.com/?order=0&shopCode={s.ShopCode}\n\n" +
+                   $"🌐 *हमारी वेबसाइट पर वापसी अनुरोध करें:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — मुख्य मेनू"));
             }
 
@@ -1088,6 +1088,8 @@ namespace crud_app_backend.Bot.Services
                     var value = entries[0].GetProperty("changes")[0].GetProperty("value");
                     if (value.TryGetProperty("statuses", out _) &&
                         !value.TryGetProperty("messages", out _))
+                        return null;
+                    if (value.TryGetProperty("smb_message_echoes", out _))
                         return null;
                     if (value.TryGetProperty("messages", out var msgs) &&
                         msgs.GetArrayLength() > 0)
