@@ -12,7 +12,7 @@ namespace crud_app_backend.Bot.Models
         public string Phone { get; set; } = string.Empty;
         public string State { get; set; } = "INIT";
         public string PreviousState { get; set; } = "INIT";
-        public string? Lang { get; set; }   // "en" | "bn" | "hi"
+        public string? Lang { get; set; }   // "en" | "bn" | "hi" | "ta" | "zh" | "ms"
 
         // Shop authentication
         public bool ShopVerified { get; set; }
@@ -26,8 +26,8 @@ namespace crud_app_backend.Bot.Models
         public List<string> MediaVoices { get; set; } = new();
 
         // ── Language helper ───────────────────────────────────────────────────
-        public string T(string en, string bn, string hi)
-            => Lang == "bn" ? bn : Lang == "hi" ? hi : en;
+        public string T(string en, string bn, string hi, string ta, string zh, string ms)
+            => Lang switch { "bn" => bn, "hi" => hi, "ta" => ta, "zh" => zh, "ms" => ms, _ => en };
 
         public string T(string en, string bn)
             => Lang == "bn" ? bn : en;
