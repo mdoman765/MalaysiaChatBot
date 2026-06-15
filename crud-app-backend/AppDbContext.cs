@@ -11,8 +11,13 @@ namespace crud_app_backend
         public DbSet<WhatsAppSession> WhatsAppSessions { get; set; } = null!;
         public DbSet<WhatsAppSessionHistory> WhatsAppSessionHistories { get; set; } = null!;
         public DbSet<WhatsAppMessage> WhatsAppMessages { get; set; } = null!;
-     //   public DbSet<WhatsAppComplaint> WhatsAppComplaints { get; set; } = null!;
-      //  public DbSet<WhatsAppComplaintMedia> WhatsAppComplaintMedia { get; set; } = null!;
+
+
+        public DbSet<BotCatalogSettings> BotCatalogSettings { get; set; } = null!;
+        public DbSet<BotCatalogProduct> BotCatalogProducts { get; set; } = null!;
+
+        //   public DbSet<WhatsAppComplaint> WhatsAppComplaints { get; set; } = null!;
+        //  public DbSet<WhatsAppComplaintMedia> WhatsAppComplaintMedia { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +72,55 @@ namespace crud_app_backend
                 entity.Property(e => e.ToStep).HasMaxLength(50);
                 entity.HasIndex(e => new { e.Phone, e.CreatedAt })
                       .HasDatabaseName("IX_WhatsAppSessionHistory_Phone_CreatedAt");
+            });
+
+            modelBuilder.Entity<BotCatalogSettings>(entity =>
+            {
+                entity.ToTable("BotCatalogSettings", "dbo");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.CatalogId)
+                      .HasMaxLength(100)
+                      .IsRequired();
+
+                entity.Property(e => e.CatalogPhone)
+                      .HasMaxLength(30)
+                      .IsRequired();
+
+                entity.Property(e => e.ThumbSku)
+                      .HasMaxLength(100)
+                      .IsRequired();
+
+                entity.Property(e => e.UpdatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            modelBuilder.Entity<BotCatalogProduct>(entity =>
+            {
+                entity.ToTable("BotCatalogProducts", "dbo");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Sku)
+                      .HasMaxLength(100)
+                      .IsRequired();
+
+                entity.Property(e => e.ProductName)
+                      .HasMaxLength(500)
+                      .IsRequired();
+
+                entity.Property(e => e.IsActive)
+                      .HasDefaultValue(true);
+
+                entity.Property(e => e.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(e => e.UpdatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(e => e.Sku)
+                      .IsUnique();
             });
 
             // ── dbo.WhatsAppComplaints ────────────────────────────────────────

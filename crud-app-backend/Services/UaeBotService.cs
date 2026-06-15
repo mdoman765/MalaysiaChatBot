@@ -22,6 +22,12 @@ namespace crud_app_backend.Bot.Services
         private readonly BotStateService _state;
         private readonly IHttpClientFactory _httpFactory;
         private readonly ILogger<UaeBotService> _logger;
+        private readonly IBotCatalogService _catalog;
+
+        // ── Catalog constants ─────────────────────────────────────────────────
+        //private const string CatalogId = "2069443963978268";
+        //private const string CatalogPhone = "60162272364";
+        //private const string CatalogThumbSku = "PRANF-RFL-005";
 
         public UaeBotService(
             IWhatsAppSessionService sessionSvc,
@@ -33,6 +39,8 @@ namespace crud_app_backend.Bot.Services
             IMemoryCache cache,
             BotStateService state,
             IHttpClientFactory httpFactory,
+            IBotCatalogService catalog,
+
             ILogger<UaeBotService> logger)
         {
             _sessionSvc = sessionSvc;
@@ -45,9 +53,12 @@ namespace crud_app_backend.Bot.Services
             _state = state;
             _httpFactory = httpFactory;
             _logger = logger;
+            _catalog = catalog;
         }
 
-
+        // ─────────────────────────────────────────────────────────────────────
+        // ENTRY POINT
+        // ─────────────────────────────────────────────────────────────────────
 
         public async Task ProcessAsync(JsonElement body)
         {
@@ -90,6 +101,9 @@ namespace crud_app_backend.Bot.Services
             }
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // ACK MESSAGES
+        // ─────────────────────────────────────────────────────────────────────
 
         private string? GetAckMessage(UaeSession s, UaeIncomingMessage msg)
         {
@@ -123,16 +137,10 @@ namespace crud_app_backend.Bot.Services
                     "⏳ Memuatkan produk...");
 
             // ── Gallery burst suppression for ACK ──────────────────────────────
-            // WhatsApp fires one webhook per image when user sends from gallery.
-            // SemaphoreSlim ensures sequential processing per user.
-            // "ack:{phone}" key — only ONE "⏳ Uploading media..." per batch (5s window).
             if ((s.State == "AWAITING_RETURN_DETAILS" || s.State == "AWAITING_COMPLAINT_DETAILS"
                  || s.State == "AWAITING_RETURN_CONFIRM" || s.State == "AWAITING_COMPLAINT_CONFIRM")
                 && (msg.MsgType == "image" || msg.MsgType == "audio"))
             {
-                // Use WA timestamp — not DateTime.UtcNow.
-                // By the time image 3 is processed, UtcNow may have drifted past the window.
-                // WA timestamps all gallery images within 1-2 seconds of each other.
                 var ackNow = msg.Timestamp > 0
                     ? DateTimeOffset.FromUnixTimeSeconds(msg.Timestamp).UtcDateTime
                     : DateTime.UtcNow;
@@ -194,31 +202,22 @@ namespace crud_app_backend.Bot.Services
         // ROUTER
         // ─────────────────────────────────────────────────────────────────────
 
-        // ── Multilingual keyword sets ─────────────────────────────────────────
-        // "menu" equivalents: English | Bengali | Hindi | Tamil | Mandarin | Malay
         private static readonly HashSet<string> MenuKeywords = new(StringComparer.OrdinalIgnoreCase)
         {
-            "menu",   // English / Malay
-            "মেনু",   // Bengali
-            "मेनू",   // Hindi
-            "மெனு",   // Tamil
-            "菜单",    // Mandarin
+            "menu",
+            "মেনু",
+            "मेनू",
+            "மெனு",
+            "菜单",
         };
 
-        // Greeting / restart equivalents across all 6 languages
         private static readonly HashSet<string> ResetKeywords = new(StringComparer.OrdinalIgnoreCase)
         {
-            // English
             "hi", "hello", "start", "hey", "new",
-            // Bengali
             "হ্যালো", "শুরু",
-            // Hindi
             "नमस्ते", "शुरू",
-            // Tamil
             "வணக்கம்", "தொடங்கு",
-            // Mandarin
             "你好", "开始",
-            // Malay
             "helo", "mula", "selamat",
         };
 
@@ -226,7 +225,12 @@ namespace crud_app_backend.Bot.Services
         {
             var raw = msg.RawText;
 
-            // Global resets — English + all language equivalents
+            // ── Cart order webhook — handled regardless of session state ──────
+            // This fires when a user sends their WhatsApp catalog cart
+            if (msg.MsgType == "order" && msg.CartItems.Count > 0)
+                return await HandleCartOrderAsync(s, msg);
+
+            // ── Global resets ─────────────────────────────────────────────────
             if (msg.MsgType == "text" && ResetKeywords.Contains(raw))
             {
                 ResetSession(s);
@@ -242,10 +246,9 @@ namespace crud_app_backend.Bot.Services
                 return string.Empty;
             }
 
-            // Global shortcuts (shop-verified users only)
+            // ── Global shortcuts (shop-verified users only) ───────────────────
             if (s.ShopVerified)
             {
-                // "menu" in any supported language
                 if (msg.MsgType == "text" && MenuKeywords.Contains(raw))
                     return BuildMainMenu(s);
 
@@ -294,7 +297,6 @@ namespace crud_app_backend.Bot.Services
                     return "❌ Invalid. Reply *1*, *2*, *3*, *4*, *5* or *6*.\n\n" + LangPrompt();
             }
 
-            // ── Already verified — skip shop code, go straight to main menu ──────
             if (s.ShopVerified)
             {
                 Transition(s, "MAIN_MENU");
@@ -307,7 +309,6 @@ namespace crud_app_backend.Bot.Services
                     $"✅ Bahasa dikemas kini.\n\n{BuildMainMenuBody("ms")}");
             }
 
-            // ── First-time user — ask for shop code ──────────────────────────────
             Transition(s, "AWAITING_SHOP_CODE");
 
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
@@ -379,10 +380,6 @@ namespace crud_app_backend.Bot.Services
             s.ShopCode = code;
             s.ShopUserId = shop.Value.Id;
 
-            // ── Store as "OwnerName | SiteName" so a single field carries both ──
-            // e.g.  "Mr Anas | GARMASHA GOURMENT CAFETERIA"
-            // Downstream services (CRM description, etc.) already use ShopName as a
-            // display string, so the pipe-delimited format is purely additive.
             var ownerTitleCase = System.Globalization.CultureInfo.InvariantCulture
                 .TextInfo.ToTitleCase((shop.Value.OwnerName ?? "").ToLowerInvariant()).Trim();
             s.ShopName = string.IsNullOrWhiteSpace(ownerTitleCase)
@@ -547,38 +544,44 @@ namespace crud_app_backend.Bot.Services
             return s.T(
                 "🛒 *How would you like to place your order?*\n\n" +
                 "1️⃣  Support Agent\n" +
-                "2️⃣  Website\n\n" +
-                "👉 Reply *1* or *2*.\n" +
+                "2️⃣  Browse Catalog (WhatsApp)\n" +
+                "3️⃣  Website\n\n" +
+                "👉 Reply *1*, *2* or *3*.\n" +
                 "Send *0* to go back to main menu",
 
                 "🛒 *আপনি কীভাবে অর্ডার দিতে চান?*\n\n" +
                 "1️⃣  সাপোর্ট এজেন্ট\n" +
-                "2️⃣  ওয়েবসাইট\n\n" +
-                "👉 *1* বা *2* পাঠান।\n" +
+                "2️⃣  ক্যাটালগ দেখুন (WhatsApp)\n" +
+                "3️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1*, *2* বা *3* পাঠান।\n" +
                 "মূল মেনুতে ফিরতে *0* পাঠান",
 
                 "🛒 *आप अपना ऑर्डर कैसे देना चाहते हैं?*\n\n" +
                 "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  वेबसाइट\n\n" +
-                "👉 *1* या *2* भेजें।\n" +
+                "2️⃣  कैटलॉग देखें (WhatsApp)\n" +
+                "3️⃣  वेबसाइट\n\n" +
+                "👉 *1*, *2* या *3* भेजें।\n" +
                 "मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "🛒 *நீங்கள் எவ்வாறு ஆர்டர் செய்ய விரும்புகிறீர்கள்?*\n\n" +
                 "1️⃣  ஆதரவு முகவர்\n" +
-                "2️⃣  இணையதளம்\n\n" +
-                "👉 *1* அல்லது *2* அனுப்பவும்.\n" +
+                "2️⃣  பட்டியலை உலாவுங்கள் (WhatsApp)\n" +
+                "3️⃣  இணையதளம்\n\n" +
+                "👉 *1*, *2* அல்லது *3* அனுப்பவும்.\n" +
                 "முகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
 
                 "🛒 *您希望如何下单？*\n\n" +
                 "1️⃣  客服人员\n" +
-                "2️⃣  网站\n\n" +
-                "👉 请发送 *1* 或 *2*。\n" +
+                "2️⃣  浏览目录 (WhatsApp)\n" +
+                "3️⃣  网站\n\n" +
+                "👉 请发送 *1*、*2* 或 *3*。\n" +
                 "发送 *0* 返回主菜单",
 
                 "🛒 *Bagaimana anda ingin membuat pesanan?*\n\n" +
                 "1️⃣  Ejen Sokongan\n" +
-                "2️⃣  Laman Web\n\n" +
-                "👉 Balas *1* atau *2*.\n" +
+                "2️⃣  Layari Katalog (WhatsApp)\n" +
+                "3️⃣  Laman Web\n\n" +
+                "👉 Balas *1*, *2* atau *3*.\n" +
                 "Hantar *0* untuk kembali ke menu utama");
         }
 
@@ -624,56 +627,131 @@ namespace crud_app_backend.Bot.Services
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // CHANNEL SELECTION (shared for Order + Return)
+        // CHANNEL SELECTION (shared prompt)
         // ─────────────────────────────────────────────────────────────────────
 
         private string BuildChannelPrompt(UaeSession s) =>
             s.T(
                 "How would you like to proceed?\n\n" +
                 "1️⃣  Support Agent\n" +
-                "2️⃣  Website\n\n" +
-                "👉 Reply *1* or *2*.\n" +
+                "2️⃣  Browse Catalog (WhatsApp)\n" +
+                "3️⃣  Website\n\n" +
+                "👉 Reply *1*, *2* or *3*.\n" +
                 "Send *0* to go back to main menu",
 
                 "আপনি কীভাবে এগিয়ে যেতে চান?\n\n" +
                 "1️⃣  সাপোর্ট এজেন্ট\n" +
-                "2️⃣  ওয়েবসাইট\n\n" +
-                "👉 *1* বা *2* পাঠান।\n" +
+                "2️⃣  ক্যাটালগ দেখুন (WhatsApp)\n" +
+                "3️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1*, *2* বা *3* পাঠান।\n" +
                 "মূল মেনুতে ফিরতে *0* পাঠান",
 
                 "आप कैसे आगे बढ़ना चाहते हैं?\n\n" +
                 "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  वेबसाइट\n\n" +
-                "👉 *1* या *2* भेजें।\n" +
+                "2️⃣  कैटलॉग देखें (WhatsApp)\n" +
+                "3️⃣  वेबसाइट\n\n" +
+                "👉 *1*, *2* या *3* भेजें।\n" +
                 "मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "நீங்கள் எவ்வாறு தொடர விரும்புகிறீர்கள்?\n\n" +
                 "1️⃣  ஆதரவு முகவர்\n" +
-                "2️⃣  இணையதளம்\n\n" +
-                "👉 *1* அல்லது *2* அனுப்பவும்.\n" +
+                "2️⃣  பட்டியலை உலாவுங்கள் (WhatsApp)\n" +
+                "3️⃣  இணையதளம்\n\n" +
+                "👉 *1*, *2* அல்லது *3* அனுப்பவும்.\n" +
                 "முகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
 
                 "您希望如何继续？\n\n" +
                 "1️⃣  客服人员\n" +
-                "2️⃣  网站\n\n" +
-                "👉 请发送 *1* 或 *2*。\n" +
+                "2️⃣  浏览目录 (WhatsApp)\n" +
+                "3️⃣  网站\n\n" +
+                "👉 请发送 *1*、*2* 或 *3*。\n" +
                 "发送 *0* 返回主菜单",
 
                 "Bagaimana anda ingin meneruskan?\n\n" +
                 "1️⃣  Ejen Sokongan\n" +
-                "2️⃣  Laman Web\n\n" +
-                "👉 Balas *1* atau *2*.\n" +
+                "2️⃣  Layari Katalog (WhatsApp)\n" +
+                "3️⃣  Laman Web\n\n" +
+                "👉 Balas *1*, *2* atau *3*.\n" +
                 "Hantar *0* untuk kembali ke menu utama");
 
-        private Task<string> HandleOrderChannelAsync(UaeSession s, UaeIncomingMessage msg)
+        private async Task<string> HandleOrderChannelAsync(UaeSession s, UaeIncomingMessage msg)
         {
-            if (msg.MsgType != "text") return Task.FromResult(BuildChannelPrompt(s));
-            if (msg.RawText == "0") return Task.FromResult(BuildMainMenu(s));
+            if (msg.MsgType != "text") return BuildChannelPrompt(s);
+            if (msg.RawText == "0") return BuildMainMenu(s);
 
+            // Option 1 — Support agent (direct CRM ticket, awaits confirmation)
+            if (msg.RawText == "1")
+                return StartPlaceOrderDirect(s);
+
+            // Option 2 — Send the WhatsApp catalog message directly (no submenu)
             if (msg.RawText == "2")
             {
+                var bodyText = s.T(
+                    "Browse our full PRAN-RFL product range and add items to your cart — all without leaving WhatsApp!",
+                    "আমাদের সম্পূর্ণ PRAN-RFL পণ্য তালিকা দেখুন এবং কার্টে যোগ করুন!",
+                    "हमारे पूरे PRAN-RFL उत्पाद श्रेणी को देखें और अपनी कार्ट में जोड़ें!",
+                    "எங்கள் முழு PRAN-RFL தயாரிப்பு வரம்பை உலாவி உங்கள் கார்ட்டில் சேர்க்கவும்!",
+                    "浏览我们完整的 PRAN-RFL 产品系列，直接在 WhatsApp 中添加到购物车！",
+                    "Layari rangkaian produk PRAN-RFL kami dan tambah ke troli anda terus dalam WhatsApp!");
+
+                var footerText = s.T(
+                    "PRAN-RFL Malaysia — Add items, then send your cart",
+                    "PRAN-RFL মালেশিয়া — পণ্য যোগ করুন, তারপর কার্ট পাঠান",
+                    "PRAN-RFL मलेशिया — आइटम जोड़ें, फिर कार्ट भेजें",
+                    "PRAN-RFL மலேசியா — பொருட்களை சேர்த்து கார்ட் அனுப்பவும்",
+                    "PRAN-RFL 马来西亚 — 添加商品后发送购物车",
+                    "PRAN-RFL Malaysia — Tambah item, kemudian hantar troli anda");
+
+                try
+                {
+                    var settings = await _catalog.GetSettingsAsync();
+                    await _dialog.SendCatalogMessageAsync(
+                        phone: msg.From,
+                        bodyText: bodyText,
+                        footerText: footerText,
+                        thumbnailSku: settings.ThumbSku);
+
+                    Transition(s, "MAIN_MENU");
+
+                    return s.T(
+                        "👆 Tap *View Catalog* above to browse products.\n\n" +
+                        "Add items to your cart and *send the cart* to place your order!\n\n" +
+                        "👉 Send *menu* for Main Menu",
+
+                        "👆 উপরে *View Catalog* চাপুন।\n\n" +
+                        "পণ্য কার্টে যোগ করুন এবং *কার্ট পাঠান* অর্ডার দিতে!\n\n" +
+                        "👉 *মেনু* — মূল মেনু",
+
+                        "👆 ऊपर *View Catalog* टैप करें।\n\n" +
+                        "आइटम कार्ट में जोड़ें और *कार्ट भेजें* ऑर्डर करने के लिए!\n\n" +
+                        "👉 *मेनू* — मुख्य मेनू",
+
+                        "👆 மேலே *View Catalog* தட்டவும்.\n\n" +
+                        "பொருட்களை கார்ட்டில் சேர்த்து *கார்ட் அனுப்பவும்*!\n\n" +
+                        "👉 *மெனு* — முகப்பு மெனு",
+
+                        "👆 点击上方 *View Catalog* 浏览商品。\n\n" +
+                        "添加商品到购物车后*发送购物车*下单！\n\n" +
+                        "👉 *menu* — 主菜单",
+
+                        "👆 Ketik *View Catalog* di atas untuk melayari produk.\n\n" +
+                        "Tambah item ke troli dan *hantar troli* untuk membuat pesanan!\n\n" +
+                        "👉 *menu* — Menu Utama");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[UAE] SendCatalogMessageAsync failed for {Phone}", msg.From);
+                    // Graceful fallback — send the wa.me link instead
+                    Transition(s, "MAIN_MENU");
+                    return   await BuildCatalogLinkMessage(s);
+                }
+            }
+
+            // Option 3 — Website link
+            if (msg.RawText == "3")
+            {
                 Transition(s, "MAIN_MENU");
-                return Task.FromResult(s.T(
+                return s.T(
                     $"🌐 *Place your order on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 Send *menu* for Main Menu",
                     $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
@@ -685,24 +763,21 @@ namespace crud_app_backend.Bot.Services
                     $"🌐 *请在我们的网站上下单：*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — 主菜单",
                     $"🌐 *Buat pesanan anda di laman web kami:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
-                    "👉 *menu* — Menu Utama"));
+                    "👉 *menu* — Menu Utama");
             }
 
-            if (msg.RawText == "1")
-                return Task.FromResult(StartPlaceOrderDirect(s));
-
-            return Task.FromResult(BuildChannelPrompt(s));
+            return BuildChannelPrompt(s);
         }
 
-        private Task<string> HandleReturnChannelAsync(UaeSession s, UaeIncomingMessage msg)
+        private async Task<string> HandleReturnChannelAsync(UaeSession s, UaeIncomingMessage msg)
         {
-            if (msg.MsgType != "text") return Task.FromResult(BuildChannelPrompt(s));
-            if (msg.RawText == "0") return Task.FromResult(BuildMainMenu(s));
+            if (msg.MsgType != "text") return BuildReturnChannelPrompt(s);
+            if (msg.RawText == "0") return BuildMainMenu(s);
 
             if (msg.RawText == "2")
             {
                 Transition(s, "MAIN_MENU");
-                return Task.FromResult(s.T(
+                return s.T(
                     $"🌐 *Submit your return request on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 Send *menu* for Main Menu",
                     $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
@@ -714,14 +789,207 @@ namespace crud_app_backend.Bot.Services
                     $"🌐 *请在我们的网站上提交退货请求：*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 *menu* — 主菜单",
                     $"🌐 *Hantar permintaan pemulangan anda di laman web kami:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
-                    "👉 *menu* — Menu Utama"));
+                    "👉 *menu* — Menu Utama");
             }
 
             if (msg.RawText == "1")
-                return Task.FromResult(StartReturnDirect(s));
+                return StartReturnDirect(s);
 
-            return Task.FromResult(BuildChannelPrompt(s));
+            return BuildReturnChannelPrompt(s);
         }
+
+        // Simple 2-option (Agent / Website) prompt used for the Return flow
+        private string BuildReturnChannelPrompt(UaeSession s) =>
+            s.T(
+                "How would you like to proceed?\n\n" +
+                "1️⃣  Support Agent\n" +
+                "2️⃣  Website\n\n" +
+                "👉 Reply *1* or *2*.\nSend *0* to go back to main menu",
+                "আপনি কীভাবে এগিয়ে যেতে চান?\n\n" +
+                "1️⃣  সাপোর্ট এজেন্ট\n" +
+                "2️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1* বা *2* পাঠান।\nমূল মেনুতে ফিরতে *0* পাঠান",
+                "आप कैसे आगे बढ़ना चाहते हैं?\n\n" +
+                "1️⃣  सपोर्ट एजेंट\n" +
+                "2️⃣  वेबसाइट\n\n" +
+                "👉 *1* या *2* भेजें।\nमुख्य मेनू पर जाने के लिए *0* भेजें",
+                "நீங்கள் எவ்வாறு தொடர விரும்புகிறீர்கள்?\n\n" +
+                "1️⃣  ஆதரவு முகவர்\n" +
+                "2️⃣  இணையதளம்\n\n" +
+                "👉 *1* அல்லது *2* அனுப்பவும்.\nமுகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
+                "您希望如何继续？\n\n" +
+                "1️⃣  客服人员\n" +
+                "2️⃣  网站\n\n" +
+                "👉 请发送 *1* 或 *2*。\n发送 *0* 返回主菜单",
+                "Bagaimana anda ingin meneruskan?\n\n" +
+                "1️⃣  Ejen Sokongan\n" +
+                "2️⃣  Laman Web\n\n" +
+                "👉 Balas *1* atau *2*.\nHantar *0* untuk kembali ke menu utama");
+
+        // ─────────────────────────────────────────────────────────────────────
+        // CATALOG LINK FALLBACK
+        // ─────────────────────────────────────────────────────────────────────
+
+        private async Task<string> BuildCatalogLinkMessage(UaeSession s)
+        {
+            var settings = await _catalog.GetSettingsAsync();  // ← ADD THIS
+            var link = $"https://wa.me/c/{settings.CatalogPhone}";
+            return s.T(
+                $"🛍️ *Tap the link to browse our full catalog:*\n{link}\n\n" +
+                "Add items to your cart and *send the cart* to place your order!\n\n" +
+                "👉 Send *menu* for Main Menu",
+
+                $"🛍️ *ক্যাটালগ দেখতে লিঙ্কে ক্লিক করুন:*\n{link}\n\n" +
+                "পণ্য কার্টে যোগ করুন এবং *কার্ট পাঠান*!\n\n" +
+                "👉 *মেনু* — মূল মেনু",
+
+                $"🛍️ *पूरा कैटलॉग देखने के लिए लिंक टैप करें:*\n{link}\n\n" +
+                "आइटम कार्ट में जोड़ें और *कार्ट भेजें*!\n\n" +
+                "👉 *मेनू* — मुख्य मेनू",
+
+                $"🛍️ *முழு பட்டியலை உலாவ இணைப்பை தட்டவும்:*\n{link}\n\n" +
+                "பொருட்களை கார்ட்டில் சேர்த்து *கார்ட் அனுப்பவும்*!\n\n" +
+                "👉 *மெனு* — முகப்பு மெனு",
+
+                $"🛍️ *点击链接浏览完整目录：*\n{link}\n\n" +
+                "添加商品到购物车后*发送购物车*下单！\n\n" +
+                "👉 *menu* — 主菜单",
+
+                $"🛍️ *Ketik pautan untuk melayari katalog penuh kami:*\n{link}\n\n" +
+                "Tambah item ke troli dan *hantar troli* untuk membuat pesanan!\n\n" +
+                "👉 *menu* — Menu Utama");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FLOW 1B — CART ORDER (inbound webhook type="order")
+        // ─────────────────────────────────────────────────────────────────────
+
+        private async Task<string> HandleCartOrderAsync(UaeSession s, UaeIncomingMessage msg)
+        {
+            _logger.LogInformation(
+        "[UAE] Cart order from {Phone} — {Count} items, catalogId={Cat}",
+        msg.From, msg.CartItems.Count, msg.OrderCatalogId);
+
+            // ── Load product name map once (cached, falls back gracefully) ────────
+            var nameMap = await _catalog.GetAllNamesAsync();
+
+            // Build human-readable item list — show product name if found, else SKU
+            var itemLines = msg.CartItems
+                .Select(i =>
+                {
+                    var name = nameMap.TryGetValue(i.Sku, out var n) ? n : i.Sku;
+                    return $"• {name} ({i.Sku}) × {i.Qty}" +
+                           (i.Price > 0 ? $" @ {i.Price:F2} {i.Currency}" : "");
+                })
+                .ToList();
+
+
+
+
+
+        
+            //_logger.LogInformation(
+            //    "[UAE] Cart order from {Phone} — {Count} items, catalogId={Cat}",
+            //    msg.From, msg.CartItems.Count, msg.OrderCatalogId);
+
+            //// Build human-readable item list
+            //var itemLines = msg.CartItems
+            //    .Select(i => $"• {i.Sku} × {i.Qty}" +
+            //                 (i.Price > 0 ? $" @ {i.Price:F2} {i.Currency}" : ""))
+            //    .ToList();
+
+            var total = msg.CartItems.Sum(i => i.Price * i.Qty);
+            var currency = msg.CartItems.FirstOrDefault()?.Currency ?? "MYR";
+
+            var totalLine = total > 0
+                ? $"\n\n*Total: {total:F2} {currency}*"
+                : string.Empty;
+
+            //var description =
+            //    $"WhatsApp Catalog Order — Shop: {s.ShopName ?? s.ShopCode}\n\n" +
+            //    string.Join("\n", itemLines) +
+            //    (total > 0 ? $"\n\nEstimated Total: {total:F2} {currency}" : "") +
+            //    (string.IsNullOrWhiteSpace(msg.OrderText) ? "" : $"\n\nCustomer note: {msg.OrderText}") +
+            //    $"\n\nCatalog ID: {msg.OrderCatalogId}";
+
+
+            var description =
+        $"WhatsApp Catalog Order — Shop: {s.ShopName ?? s.ShopCode}\n\n" +
+        string.Join("\n", itemLines) +   // ← now includes names already
+        (total > 0 ? $"\n\nEstimated Total: {total:F2} {currency}" : "") +
+        (string.IsNullOrWhiteSpace(msg.OrderText) ? "" : $"\n\nCustomer note: {msg.OrderText}") +
+        $"\n\nCatalog ID: {msg.OrderCatalogId}";
+
+            var req = new UaeCrmRequest
+            {
+                ShopCode = s.ShopCode ?? "",
+                WhatsappNumber = s.Phone,
+                TicketType = "PLACE_ORDER",
+                Description = description,
+                CartItems = string.Join("|", msg.CartItems.Select(i => $"{i.Sku}:{i.Qty}:{i.Price}")),
+            };
+
+            var result = await _crm.SubmitAsync(req);
+            Transition(s, "MAIN_MENU");
+
+            var itemSummary = string.Join("\n", itemLines);
+
+            return result.Success
+                ? s.T(
+                    $"✅ *Order Received!*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"Ticket ID: *{result.TicketId}*\n\n" : "") +
+                    "Our team will confirm your order shortly.\n\n" +
+                    "👉 Send *menu* for Main Menu",
+
+                    $"✅ *অর্ডার পাওয়া গেছে!*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"টিকেট আইডি: *{result.TicketId}*\n\n" : "") +
+                    "আমাদের টিম শীঘ্রই আপনার অর্ডার নিশ্চিত করবে।\n\n" +
+                    "👉 *মেনু* — মূল মেনু",
+
+                    $"✅ *ऑर्डर प्राप्त हुआ!*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"टिकट ID: *{result.TicketId}*\n\n" : "") +
+                    "हमारी टीम जल्द आपके ऑर्डर की पुष्टि करेगी।\n\n" +
+                    "👉 *मेनू* — मुख्य मेनू",
+
+                    $"✅ *ஆர்டர் பெறப்பட்டது!*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"டிக்கெட் ஐடி: *{result.TicketId}*\n\n" : "") +
+                    "எங்கள் குழு விரைவில் உங்கள் ஆர்டரை உறுதிப்படுத்தும்.\n\n" +
+                    "👉 *மெனு* — முகப்பு மெனு",
+
+                    $"✅ *订单已收到！*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"工单 ID：*{result.TicketId}*\n\n" : "") +
+                    "我们的团队将尽快确认您的订单。\n\n" +
+                    "👉 *menu* — 主菜单",
+
+                    $"✅ *Pesanan Diterima!*\n\n" +
+                    $"{itemSummary}{totalLine}\n\n" +
+                    (result.TicketId != null ? $"ID Tiket: *{result.TicketId}*\n\n" : "") +
+                    "Pasukan kami akan mengesahkan pesanan anda tidak lama lagi.\n\n" +
+                    "👉 Hantar *menu* untuk Menu Utama")
+
+                : s.T(
+                    $"❌ *Could not save your order.*\n{result.Error}\n\n" +
+                    "Please try again or send *S* to reach a support agent.",
+                    $"❌ *অর্ডার সেভ করা যায়নি।*\n{result.Error}\n\n" +
+                    "আবার চেষ্টা করুন বা *S* পাঠিয়ে এজেন্টের সাথে যোগাযোগ করুন।",
+                    $"❌ *ऑर्डर सेव नहीं हुआ।*\n{result.Error}\n\n" +
+                    "पुनः प्रयास करें या एजेंट के लिए *S* भेजें।",
+                    $"❌ *ஆர்டரை சேமிக்க முடியவில்லை.*\n{result.Error}\n\n" +
+                    "மீண்டும் முயற்சிக்கவும் அல்லது முகவருக்கு *S* அனுப்பவும்.",
+                    $"❌ *无法保存您的订单。*\n{result.Error}\n\n" +
+                    "请重试或发送 *S* 联系客服。",
+                    $"❌ *Pesanan tidak dapat disimpan.*\n{result.Error}\n\n" +
+                    "Sila cuba lagi atau hantar *S* untuk hubungi ejen.");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // FLOW 1 — ORDER CONFIRM (agent path)
+        // ─────────────────────────────────────────────────────────────────────
 
         private async Task<string> HandleOrderConfirmAsync(UaeSession s, UaeIncomingMessage msg)
         {
@@ -951,7 +1219,7 @@ namespace crud_app_backend.Bot.Services
                         "⚠️ 图片上传失败，请重试。",
                         "⚠️ Gambar tidak dapat dimuat naik. Sila cuba lagi.");
 
-                // ── Confirm message burst suppression ──────────────────────────
+                // Confirm-message burst suppression
                 {
                     var now = msg.Timestamp > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(msg.Timestamp).UtcDateTime
@@ -1127,8 +1395,7 @@ namespace crud_app_backend.Bot.Services
                 "Hantar *N* untuk Batal\n\n" +
                 "👉 Hantar *0* untuk kembali ke menu utama");
 
-        private async Task<string> HandleAgentConfirm1Async(
-            UaeSession s, UaeIncomingMessage msg)
+        private async Task<string> HandleAgentConfirm1Async(UaeSession s, UaeIncomingMessage msg)
         {
             if (msg.RawText == "y") return await ConnectAgentAsync(s);
             if (msg.RawText == "n" || msg.RawText == "0") return BuildMainMenu(s);
@@ -1188,6 +1455,9 @@ namespace crud_app_backend.Bot.Services
                     $"❌ Permintaan gagal.\n{result.Error}\n\nHantar *S* untuk cuba semula.");
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // WELCOME / LANGUAGE PROMPT
+        // ─────────────────────────────────────────────────────────────────────
 
         private async Task SendWelcomeAsync(string phone, CancellationToken ct = default)
         {
@@ -1207,6 +1477,9 @@ namespace crud_app_backend.Bot.Services
             "6️⃣  Bahasa Melayu\n\n" +
             "👉 Reply *1*, *2*, *3*, *4*, *5* or *6*.";
 
+        // ─────────────────────────────────────────────────────────────────────
+        // MEDIA SAVE
+        // ─────────────────────────────────────────────────────────────────────
 
         private async Task<string?> SaveMediaToDiskAsync(
             string messageId, string mediaId, string mimeType,
@@ -1271,23 +1544,24 @@ namespace crud_app_backend.Bot.Services
             }
             catch (HttpRequestException httpEx)
             {
-                _logger.LogError(httpEx,
-                    "[UAE] 360dialog download failed mediaId={Id}: {Msg}", mediaId, httpEx.Message);
+                _logger.LogError(httpEx, "[UAE] 360dialog download failed mediaId={Id}: {Msg}", mediaId, httpEx.Message);
                 return null;
             }
             catch (IOException ioEx)
             {
-                _logger.LogError(ioEx,
-                    "[UAE] Disk write failed wa-media/{Sub}: {Msg}", subFolder, ioEx.Message);
+                _logger.LogError(ioEx, "[UAE] Disk write failed wa-media/{Sub}: {Msg}", subFolder, ioEx.Message);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "[UAE] SaveMedia failed msgId={Id} mediaId={MId}", messageId, mediaId);
+                _logger.LogError(ex, "[UAE] SaveMedia failed msgId={Id} mediaId={MId}", messageId, mediaId);
                 return null;
             }
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // SESSION HELPERS
+        // ─────────────────────────────────────────────────────────────────────
 
         private async Task<UaeSession> LoadSessionAsync(string phone)
         {
@@ -1322,10 +1596,15 @@ namespace crud_app_backend.Bot.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[UAE] PersistSession FAILED phone={Phone} step={Step} error={Msg} inner={Inner}",
+                _logger.LogError(ex,
+                    "[UAE] PersistSession FAILED phone={Phone} step={Step} error={Msg} inner={Inner}",
                     s.Phone, s.State, ex.Message, ex.InnerException?.Message ?? "none");
             }
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // STATE / MEDIA UTILITIES
+        // ─────────────────────────────────────────────────────────────────────
 
         private static void Transition(UaeSession s, string newState)
         {
@@ -1381,9 +1660,6 @@ namespace crud_app_backend.Bot.Services
 
     // ─────────────────────────────────────────────────────────────────────────
     // NUMERAL NORMALISER
-    // Translates script digits (Tamil ௧, Bengali ১, Devanagari १, Fullwidth １,
-    // Arabic-Indic ١, Extended Arabic ۱) to ASCII 0-9 so all input checks work
-    // regardless of the keyboard the user is typing on.
     // ─────────────────────────────────────────────────────────────────────────
 
     public static class NumeralNormaliser
@@ -1416,14 +1692,9 @@ namespace crud_app_backend.Bot.Services
             { '\u06F8', '8' }, { '\u06F9', '9' },
         };
 
-        /// <summary>
-        /// Replaces any script digit characters with their ASCII 0-9 equivalents.
-        /// All other characters are passed through unchanged.
-        /// </summary>
         public static string Normalise(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;
-            // Fast path: if no char is in the map, return original string unchanged
             bool hasScript = false;
             foreach (var ch in input)
                 if (Map.ContainsKey(ch)) { hasScript = true; break; }
@@ -1448,12 +1719,24 @@ namespace crud_app_backend.Bot.Services
         public string MsgType { get; set; } = "text";
         public long Timestamp { get; set; }
         public string RawText { get; set; } = "";
+
+        // Audio
         public string AudioId { get; set; } = "";
         public string AudioMime { get; set; } = "audio/ogg";
+
+        // Image
         public string ImageId { get; set; } = "";
         public string ImageMime { get; set; } = "image/jpeg";
         public string ImageCaption { get; set; } = "";
+
+        // ── Catalog cart order (type = "order") ───────────────────────────────
+        public string OrderCatalogId { get; set; } = "";
+        public string OrderText { get; set; } = "";
+        public List<CartItem> CartItems { get; set; } = new();
     }
+
+    /// <summary>One line-item from a WhatsApp catalog cart webhook.</summary>
+    public record CartItem(string Sku, int Qty, decimal Price, string Currency);
 
     public static class UaeMessageParser
     {
@@ -1503,6 +1786,7 @@ namespace crud_app_backend.Bot.Services
 
                 if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(msgType)) return null;
 
+                // ── Text ─────────────────────────────────────────────────────
                 string rawText = string.Empty;
                 if (msgType == "text" &&
                     msg.TryGetProperty("text", out var textEl) &&
@@ -1514,6 +1798,7 @@ namespace crud_app_backend.Bot.Services
                             @"[\u200B-\u200D\uFEFF]", ""));
                 }
 
+                // ── Audio ────────────────────────────────────────────────────
                 string audioId = "", audioMime = "audio/ogg";
                 if (msgType == "audio" && msg.TryGetProperty("audio", out var audio))
                 {
@@ -1521,12 +1806,43 @@ namespace crud_app_backend.Bot.Services
                     audioMime = S(audio, "mime_type") is { Length: > 0 } m ? m : "audio/ogg";
                 }
 
+                // ── Image ────────────────────────────────────────────────────
                 string imageId = "", imageMime = "image/jpeg", imageCap = "";
                 if (msgType == "image" && msg.TryGetProperty("image", out var image))
                 {
                     imageId = S(image, "id");
                     imageMime = S(image, "mime_type") is { Length: > 0 } m ? m : "image/jpeg";
                     imageCap = S(image, "caption");
+                }
+
+                // ── Catalog cart order ────────────────────────────────────────
+                // Fires when a user taps "Send" on their WhatsApp shopping cart.
+                // Webhook shape:
+                // { "type": "order", "order": { "catalog_id": "...", "text": "...",
+                //   "product_items": [ { "product_retailer_id": "SKU", "quantity": 2,
+                //                        "item_price": 12.50, "currency": "MYR" } ] } }
+                string orderCatalogId = "", orderText = "";
+                var cartItems = new List<CartItem>();
+
+                if (msgType == "order" && msg.TryGetProperty("order", out var order))
+                {
+                    orderCatalogId = S(order, "catalog_id");
+                    orderText = S(order, "text");
+
+                    if (order.TryGetProperty("product_items", out var items) &&
+                        items.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in items.EnumerateArray())
+                        {
+                            var sku = S(item, "product_retailer_id");
+                            var qty = item.TryGetProperty("quantity", out var qEl) ? qEl.GetInt32() : 1;
+                            var price = item.TryGetProperty("item_price", out var pEl) ? pEl.GetDecimal() : 0m;
+                            var currency = S(item, "currency");
+
+                            if (!string.IsNullOrEmpty(sku))
+                                cartItems.Add(new CartItem(sku, qty, price, currency));
+                        }
+                    }
                 }
 
                 return new UaeIncomingMessage
@@ -1542,6 +1858,9 @@ namespace crud_app_backend.Bot.Services
                     ImageId = imageId,
                     ImageMime = imageMime,
                     ImageCaption = imageCap,
+                    OrderCatalogId = orderCatalogId,
+                    OrderText = orderText,
+                    CartItems = cartItems,
                 };
             }
             catch { return null; }

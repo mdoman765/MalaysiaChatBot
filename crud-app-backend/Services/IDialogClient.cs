@@ -1,9 +1,16 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace crud_app_backend.Bot.Services
 {
     public interface IDialogClient
     {
-        /// <summary>Send a plain-text WhatsApp message via 360dialog v2.</summary>
-        Task SendTextAsync(string phone, string message,
+        /// <summary>
+        /// Send a plain-text WhatsApp message via 360dialog v2.
+        /// </summary>
+        Task SendTextAsync(
+            string phone,
+            string message,
             CancellationToken ct = default);
 
         /// <summary>
@@ -14,7 +21,21 @@ namespace crud_app_backend.Bot.Services
         /// caption supports WhatsApp markdown (*bold*, _italic_, etc).
         /// Falls back to plain text automatically if imageUrl is empty or fetch fails.
         /// </summary>
-        Task SendImageAsync(string phone, string imageUrl, string caption,
+        Task SendImageAsync(
+            string phone,
+            string imageUrl,
+            string caption,
+            CancellationToken ct = default);
+
+        /// <summary>
+        /// Sends a WhatsApp Catalog Message (View Catalog button).
+        /// Requires a WhatsApp Commerce Catalog connected to the WABA.
+        /// </summary>
+        Task SendCatalogMessageAsync(
+            string phone,
+            string bodyText,
+            string footerText,
+            string thumbnailSku,
             CancellationToken ct = default);
 
         /// <summary>
@@ -22,7 +43,8 @@ namespace crud_app_backend.Bot.Services
         /// Returns (bytes, mimeType). Throws on failure.
         /// </summary>
         Task<(byte[] Data, string MimeType)> DownloadMediaAsync(
-            string mediaId, string fallbackMime,
+            string mediaId,
+            string fallbackMime,
             CancellationToken ct = default);
     }
 }

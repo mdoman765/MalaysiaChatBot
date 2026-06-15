@@ -137,5 +137,68 @@ namespace crud_app_backend.Bot.Services
 
             return (bytes, mime);
         }
+
+        // ── Send WhatsApp Catalog Message ─────────────────────────────────────
+
+        public async Task SendCatalogMessageAsync(
+            string phone,
+            string bodyText,
+            string footerText,
+            string thumbnailSku,
+            CancellationToken ct = default)
+        {
+            var client = _factory.CreateClient("Dialog");
+
+            var payload = new
+            {
+                messaging_product = "whatsapp",
+                recipient_type = "individual",
+                to = phone,
+                type = "interactive",
+                interactive = new
+                {
+                    type = "catalog_message",
+                    body = new
+                    {
+                        text = bodyText
+                    },
+                    footer = new
+                    {
+                        text = footerText
+                    },
+                    action = new
+                    {
+                        name = "catalog_message",
+                        parameters = new
+                        {
+                            thumbnail_product_retailer_id = thumbnailSku
+                        }
+                    }
+                }
+            };
+
+            var resp = await client.PostAsJsonAsync(
+                $"{BaseUrl}/messages",
+                payload,
+                ct);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct);
+
+                _logger.LogWarning(
+                    "[Dialog] SendCatalogMessage failed {Code} to {Phone}: {Body}",
+                    (int)resp.StatusCode,
+                    phone,
+                    body.Length > 500 ? body[..500] : body);
+
+                throw new Exception(
+                    $"Catalog message failed ({(int)resp.StatusCode}): {body}");
+            }
+
+            _logger.LogInformation(
+                "[Dialog] Catalog message sent to {Phone}",
+                phone);
+        }
     }
 }

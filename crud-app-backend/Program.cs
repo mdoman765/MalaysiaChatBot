@@ -28,6 +28,8 @@ builder.Services.AddSingleton<WebhookQueue>();       // Channel for instant 200 
 builder.Services.AddScoped<IUaeBotService, UaeBotService>();
 builder.Services.AddScoped<IDialogClient, DialogClient>();
 builder.Services.AddScoped<IUaeCrmService, UaeCrmService>();
+builder.Services.AddScoped<IBotCatalogRepository, BotCatalogRepository>();
+builder.Services.AddScoped<IBotCatalogService, BotCatalogService>();
 
 // ── Background services ───────────────────────────────────────────────────────
 builder.Services.AddHostedService<WebhookProcessorService>();
