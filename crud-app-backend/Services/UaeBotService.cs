@@ -111,7 +111,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "🔍 Verifying shop...",
                     "🔍 শপ যাচাই করা হচ্ছে...",
-                    "🔍 दुकान की जाँच हो रही है...",
                     "🔍 கடையை சரிபார்க்கிறோம்...",
                     "🔍 正在验证商店...",
                     "🔍 Mengesahkan kedai...");
@@ -121,7 +120,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Loading categories...",
                     "⏳ ক্যাটাগরি লোড হচ্ছে...",
-                    "⏳ श्रेणियाँ लोड हो रही हैं...",
                     "⏳ வகைகளை ஏற்றுகிறோம்...",
                     "⏳ 正在加载分类...",
                     "⏳ Memuatkan kategori...");
@@ -131,7 +129,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Loading products...",
                     "⏳ পণ্য লোড হচ্ছে...",
-                    "⏳ उत्पाद लोड हो रहे हैं...",
                     "⏳ தயாரிப்புகளை ஏற்றுகிறோம்...",
                     "⏳ 正在加载产品...",
                     "⏳ Memuatkan produk...");
@@ -152,7 +149,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Uploading media...",
                     "⏳ মিডিয়া আপলোড হচ্ছে...",
-                    "⏳ मीडिया अपलोड हो रहा है...",
                     "⏳ மீடியா பதிவேற்றுகிறோம்...",
                     "⏳ 正在上传媒体...",
                     "⏳ Memuat naik media...");
@@ -162,7 +158,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Placing order...",
                     "⏳ অর্ডার দেওয়া হচ্ছে...",
-                    "⏳ ऑर्डर दिया जा रहा है...",
                     "⏳ ஆர்டர் செய்கிறோம்...",
                     "⏳ 正在下单...",
                     "⏳ Membuat pesanan...");
@@ -171,7 +166,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Submitting complaint...",
                     "⏳ অভিযোগ জমা হচ্ছে...",
-                    "⏳ शिकायत जमा हो रही है...",
                     "⏳ புகாரை சமர்ப்பிக்கிறோம்...",
                     "⏳ 正在提交投诉...",
                     "⏳ Menghantar aduan...");
@@ -180,7 +174,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Submitting return request...",
                     "⏳ রিটার্ন জমা হচ্ছে...",
-                    "⏳ वापसी जमा हो रही है...",
                     "⏳ திரும்பப்பெறும் கோரிக்கையை சமர்ப்பிக்கிறோம்...",
                     "⏳ 正在提交退货请求...",
                     "⏳ Menghantar permintaan pemulangan...");
@@ -190,7 +183,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "⏳ Connecting to agent...",
                     "⏳ এজেন্টের সাথে সংযোগ...",
-                    "⏳ एजेंट से जोड़ा जा रहा है...",
                     "⏳ முகவருடன் இணைக்கிறோம்...",
                     "⏳ 正在连接客服...",
                     "⏳ Menghubungkan ke ejen...");
@@ -206,7 +198,6 @@ namespace crud_app_backend.Bot.Services
         {
             "menu",
             "মেনু",
-            "मेनू",
             "மெனு",
             "菜单",
         };
@@ -215,7 +206,6 @@ namespace crud_app_backend.Bot.Services
         {
             "hi", "hello", "start", "hey", "new",
             "হ্যালো", "শুরু",
-            "नमस्ते", "शुरू",
             "வணக்கம்", "தொடங்கு",
             "你好", "开始",
             "helo", "mula", "selamat",
@@ -289,12 +279,11 @@ namespace crud_app_backend.Bot.Services
             {
                 case "1": s.Lang = "en"; break;
                 case "2": s.Lang = "bn"; break;
-                case "3": s.Lang = "hi"; break;
-                case "4": s.Lang = "ta"; break;
-                case "5": s.Lang = "zh"; break;
-                case "6": s.Lang = "ms"; break;
+                case "3": s.Lang = "ta"; break;
+                case "4": s.Lang = "zh"; break;
+                case "5": s.Lang = "ms"; break;
                 default:
-                    return "❌ Invalid. Reply *1*, *2*, *3*, *4*, *5* or *6*.\n\n" + LangPrompt();
+                    return "❌ Invalid. Reply *1*, *2*, *3*, *4* or *5*.\n\n" + LangPrompt();
             }
 
             if (s.ShopVerified)
@@ -303,7 +292,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     $"✅ Language updated.\n\n{BuildMainMenuBody("en")}",
                     $"✅ ভাষা পরিবর্তন হয়েছে।\n\n{BuildMainMenuBody("bn")}",
-                    $"✅ भाषा बदल गई।\n\n{BuildMainMenuBody("hi")}",
                     $"✅ மொழி புதுப்பிக்கப்பட்டது.\n\n{BuildMainMenuBody("ta")}",
                     $"✅ 语言已更新。\n\n{BuildMainMenuBody("zh")}",
                     $"✅ Bahasa dikemas kini.\n\n{BuildMainMenuBody("ms")}");
@@ -312,7 +300,7 @@ namespace crud_app_backend.Bot.Services
             Transition(s, "AWAITING_SHOP_CODE");
 
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
-            var shopCodeImageUrl = $"{baseUrl}/images/mal_shopcode.png";
+            var shopCodeImageUrl = $"{baseUrl}/images/mal_shopcode.jpeg";
 
             var caption = s.T(
                 "✅ Language set to *English*.\n\n" +
@@ -324,11 +312,6 @@ namespace crud_app_backend.Bot.Services
                 "👉 আপনার *শপ কোড* পাঠান।\n" +
                 "শপ কোড আপনার PRAN-RFL শপ কার্ডে আছে।\n\n" +
                 "উদাহরণ: *12345678*",
-
-                "✅ भाषा हिंदी में सेट है।\n\n" +
-                "👉 अपना *शॉप कोड* भेजें।\n" +
-                "शॉप कोड आपके PRAN-RFL शॉप कार्ड पर है।\n\n" +
-                "उदाहरण: *12345678*",
 
                 "✅ மொழி தமிழில் அமைக்கப்பட்டது.\n\n" +
                 "👉 உங்கள் *கடை குறியீடு* அனுப்பவும்.\n" +
@@ -359,7 +342,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     "👉 Enter your *Shop Code*.\nExample: *12345678*",
                     "👉 আপনার *শপ কোড* দিন।\nউদাহরণ: *12345678*",
-                    "👉 अपना *शॉप कोड* दर्ज करें।\nउदाहरण: *12345678*",
                     "👉 உங்கள் *கடை குறியீடு* உள்ளிடவும்.\nஎடுத்துக்காட்டு: *12345678*",
                     "👉 请输入您的*商店代码*。\n示例：*12345678*",
                     "👉 Masukkan *Kod Kedai* anda.\nContoh: *12345678*");
@@ -371,7 +353,6 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     $"❌ *Shop Code not found.*\n\n*{code}* is not recognised.\n\n👉 Check and try again.\nExample: *12345678*",
                     $"❌ *শপ কোড পাওয়া যায়নি।*\n\n*{code}* সঠিক নয়।\n\n👉 আবার চেষ্টা করুন।\nউদাহরণ: *12345678*",
-                    $"❌ *शॉप कोड नहीं मिला।*\n\n*{code}* सही नहीं।\n\n👉 पुनः प्रयास करें।\nउदाहरण: *12345678*",
                     $"❌ *கடை குறியீடு கிடைக்கவில்லை.*\n\n*{code}* அங்கீகரிக்கப்படவில்லை.\n\n👉 சரிபார்த்து மீண்டும் முயற்சிக்கவும்.\nஎடுத்துக்காட்டு: *12345678*",
                     $"❌ *未找到商店代码。*\n\n*{code}* 无法识别。\n\n👉 请检查后重试。\n示例：*12345678*",
                     $"❌ *Kod Kedai tidak dijumpai.*\n\n*{code}* tidak diiktiraf.\n\n👉 Semak dan cuba lagi.\nContoh: *12345678*");
@@ -394,14 +375,12 @@ namespace crud_app_backend.Bot.Services
                 ? s.T(
                     "✅ *Shop Verified! Welcome to*",
                     "✅ *শপ যাচাই হয়েছে! স্বাগতম*",
-                    "✅ *दुकान सत्यापित! स्वागत है*",
                     "✅ *கடை சரிபார்க்கப்பட்டது! வரவேற்கிறோம்*",
                     "✅ *商店已验证！欢迎*",
                     "✅ *Kedai Disahkan! Selamat datang ke*")
                 : s.T(
                     $"✅ *Hi, {displayOwner}!* Welcome to",
                     $"✅ *হ্যালো, {displayOwner}!* স্বাগতম",
-                    $"✅ *नमस्ते, {displayOwner}!* स्वागत है",
                     $"✅ *வணக்கம், {displayOwner}!* வரவேற்கிறோம்",
                     $"✅ *你好, {displayOwner}!* 欢迎",
                     $"✅ *Helo, {displayOwner}!* Selamat datang");
@@ -409,7 +388,6 @@ namespace crud_app_backend.Bot.Services
             return s.T(
                 $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("en")}",
                 $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("bn")}",
-                $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("hi")}",
                 $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("ta")}",
                 $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("zh")}",
                 $"{greeting}\n*PRAN-RFL Malaysia Sales Support*\n\n{BuildMainMenuBody("ms")}");
@@ -486,13 +464,6 @@ namespace crud_app_backend.Bot.Services
                 "4️⃣  সাপোর্ট এজেন্ট\n" +
                 "0️⃣  ভাষা পরিবর্তন\n\n" +
                 "👉 *1*, *2*, *3*, *4* বা *0* পাঠান।",
-            "hi" =>
-                "1️⃣  ऑर्डर करें\n" +
-                "2️⃣  वापसी / प्रतिस्थापन\n" +
-                "3️⃣  शिकायत / फ़ीडबैक\n" +
-                "4️⃣  सपोर्ट एजेंट\n" +
-                "0️⃣  भाषा बदलें\n\n" +
-                "👉 *1*, *2*, *3*, *4* या *0* भेजें।",
             "ta" =>
                 "1️⃣  ஆர்டர் செய்யுங்கள்\n" +
                 "2️⃣  திரும்பப்பெறுதல் / மாற்றீடு\n" +
@@ -540,49 +511,18 @@ namespace crud_app_backend.Bot.Services
 
         private string StartPlaceOrder(UaeSession s)
         {
-            Transition(s, "AWAITING_ORDER_CHANNEL");
+            Transition(s, "MAIN_MENU");
             return s.T(
-                "🛒 *How would you like to place your order?*\n\n" +
-                "1️⃣  Support Agent\n" +
-                "2️⃣  Browse Catalog (WhatsApp)\n" +
-                "3️⃣  Website\n\n" +
-                "👉 Reply *1*, *2* or *3*.\n" +
-                "Send *0* to go back to main menu",
-
-                "🛒 *আপনি কীভাবে অর্ডার দিতে চান?*\n\n" +
-                "1️⃣  সাপোর্ট এজেন্ট\n" +
-                "2️⃣  ক্যাটালগ দেখুন (WhatsApp)\n" +
-                "3️⃣  ওয়েবসাইট\n\n" +
-                "👉 *1*, *2* বা *3* পাঠান।\n" +
-                "মূল মেনুতে ফিরতে *0* পাঠান",
-
-                "🛒 *आप अपना ऑर्डर कैसे देना चाहते हैं?*\n\n" +
-                "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  कैटलॉग देखें (WhatsApp)\n" +
-                "3️⃣  वेबसाइट\n\n" +
-                "👉 *1*, *2* या *3* भेजें।\n" +
-                "मुख्य मेनू पर जाने के लिए *0* भेजें",
-
-                "🛒 *நீங்கள் எவ்வாறு ஆர்டர் செய்ய விரும்புகிறீர்கள்?*\n\n" +
-                "1️⃣  ஆதரவு முகவர்\n" +
-                "2️⃣  பட்டியலை உலாவுங்கள் (WhatsApp)\n" +
-                "3️⃣  இணையதளம்\n\n" +
-                "👉 *1*, *2* அல்லது *3* அனுப்பவும்.\n" +
-                "முகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
-
-                "🛒 *您希望如何下单？*\n\n" +
-                "1️⃣  客服人员\n" +
-                "2️⃣  浏览目录 (WhatsApp)\n" +
-                "3️⃣  网站\n\n" +
-                "👉 请发送 *1*、*2* 或 *3*。\n" +
-                "发送 *0* 返回主菜单",
-
-                "🛒 *Bagaimana anda ingin membuat pesanan?*\n\n" +
-                "1️⃣  Ejen Sokongan\n" +
-                "2️⃣  Layari Katalog (WhatsApp)\n" +
-                "3️⃣  Laman Web\n\n" +
-                "👉 Balas *1*, *2* atau *3*.\n" +
-                "Hantar *0* untuk kembali ke menu utama");
+                $"🌐 *Place your order on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                "👉 Send *menu* for Main Menu",
+                $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                "👉 *মেনু* — মূল মেনু",
+                $"🌐 *எங்கள் இணையதளத்தில் ஆர்டர் செய்யுங்கள்:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                "👉 *மெனு* — முகப்பு மெனு",
+                $"🌐 *请在我们的网站上下单：*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                "👉 *menu* — 主菜单",
+                $"🌐 *Buat pesanan anda di laman web kami:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                "👉 *menu* — Menu Utama");
         }
 
         private string StartPlaceOrderDirect(UaeSession s)
@@ -600,12 +540,6 @@ namespace crud_app_backend.Bot.Services
                 "নিশ্চিত করতে *Y* পাঠান\n" +
                 "বাতিল করতে *N* পাঠান\n\n" +
                 "👉 মূল মেনুতে যেতে *0* পাঠান",
-
-                "🛒 *ऑर्डर करें*\n\n" +
-                "हमारी सेल्स टीम आपका ऑर्डर लेने के लिए संपर्क करेगी।\n\n" +
-                "*Y* भेजें पुष्टि के लिए\n" +
-                "*N* भेजें रद्द करने के लिए\n\n" +
-                "👉 मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "🛒 *ஆர்டர் செய்யுங்கள்*\n\n" +
                 "எங்கள் விற்பனை குழு உங்கள் ஆர்டரை எடுக்க தொடர்பு கொள்ளும்.\n\n" +
@@ -633,45 +567,33 @@ namespace crud_app_backend.Bot.Services
         private string BuildChannelPrompt(UaeSession s) =>
             s.T(
                 "How would you like to proceed?\n\n" +
-                "1️⃣  Support Agent\n" +
-                "2️⃣  Browse Catalog (WhatsApp)\n" +
-                "3️⃣  Website\n\n" +
-                "👉 Reply *1*, *2* or *3*.\n" +
+                "1️⃣  Browse Catalog (WhatsApp)\n" +
+                "2️⃣  Website\n\n" +
+                "👉 Reply *1* or *2*.\n" +
                 "Send *0* to go back to main menu",
 
                 "আপনি কীভাবে এগিয়ে যেতে চান?\n\n" +
-                "1️⃣  সাপোর্ট এজেন্ট\n" +
-                "2️⃣  ক্যাটালগ দেখুন (WhatsApp)\n" +
-                "3️⃣  ওয়েবসাইট\n\n" +
-                "👉 *1*, *2* বা *3* পাঠান।\n" +
+                "1️⃣  ক্যাটালগ দেখুন (WhatsApp)\n" +
+                "2️⃣  ওয়েবসাইট\n\n" +
+                "👉 *1* বা *2* পাঠান।\n" +
                 "মূল মেনুতে ফিরতে *0* পাঠান",
 
-                "आप कैसे आगे बढ़ना चाहते हैं?\n\n" +
-                "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  कैटलॉग देखें (WhatsApp)\n" +
-                "3️⃣  वेबसाइट\n\n" +
-                "👉 *1*, *2* या *3* भेजें।\n" +
-                "मुख्य मेनू पर जाने के लिए *0* भेजें",
-
                 "நீங்கள் எவ்வாறு தொடர விரும்புகிறீர்கள்?\n\n" +
-                "1️⃣  ஆதரவு முகவர்\n" +
-                "2️⃣  பட்டியலை உலாவுங்கள் (WhatsApp)\n" +
-                "3️⃣  இணையதளம்\n\n" +
-                "👉 *1*, *2* அல்லது *3* அனுப்பவும்.\n" +
+                "1️⃣  பட்டியலை உலாவுங்கள் (WhatsApp)\n" +
+                "2️⃣  இணையதளம்\n\n" +
+                "👉 *1* அல்லது *2* அனுப்பவும்.\n" +
                 "முகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
 
                 "您希望如何继续？\n\n" +
-                "1️⃣  客服人员\n" +
-                "2️⃣  浏览目录 (WhatsApp)\n" +
-                "3️⃣  网站\n\n" +
-                "👉 请发送 *1*、*2* 或 *3*。\n" +
+                "1️⃣  浏览目录 (WhatsApp)\n" +
+                "2️⃣  网站\n\n" +
+                "👉 请发送 *1* 或 *2*。\n" +
                 "发送 *0* 返回主菜单",
 
                 "Bagaimana anda ingin meneruskan?\n\n" +
-                "1️⃣  Ejen Sokongan\n" +
-                "2️⃣  Layari Katalog (WhatsApp)\n" +
-                "3️⃣  Laman Web\n\n" +
-                "👉 Balas *1*, *2* atau *3*.\n" +
+                "1️⃣  Layari Katalog (WhatsApp)\n" +
+                "2️⃣  Laman Web\n\n" +
+                "👉 Balas *1* atau *2*.\n" +
                 "Hantar *0* untuk kembali ke menu utama");
 
         private async Task<string> HandleOrderChannelAsync(UaeSession s, UaeIncomingMessage msg)
@@ -679,17 +601,12 @@ namespace crud_app_backend.Bot.Services
             if (msg.MsgType != "text") return BuildChannelPrompt(s);
             if (msg.RawText == "0") return BuildMainMenu(s);
 
-            // Option 1 — Support agent (direct CRM ticket, awaits confirmation)
+            // Option 1 — Send the WhatsApp catalog message directly (no submenu)
             if (msg.RawText == "1")
-                return StartPlaceOrderDirect(s);
-
-            // Option 2 — Send the WhatsApp catalog message directly (no submenu)
-            if (msg.RawText == "2")
             {
                 var bodyText = s.T(
                     "Browse our full PRAN-RFL product range and add items to your cart — all without leaving WhatsApp!",
                     "আমাদের সম্পূর্ণ PRAN-RFL পণ্য তালিকা দেখুন এবং কার্টে যোগ করুন!",
-                    "हमारे पूरे PRAN-RFL उत्पाद श्रेणी को देखें और अपनी कार्ट में जोड़ें!",
                     "எங்கள் முழு PRAN-RFL தயாரிப்பு வரம்பை உலாவி உங்கள் கார்ட்டில் சேர்க்கவும்!",
                     "浏览我们完整的 PRAN-RFL 产品系列，直接在 WhatsApp 中添加到购物车！",
                     "Layari rangkaian produk PRAN-RFL kami dan tambah ke troli anda terus dalam WhatsApp!");
@@ -697,7 +614,6 @@ namespace crud_app_backend.Bot.Services
                 var footerText = s.T(
                     "PRAN-RFL Malaysia — Add items, then send your cart",
                     "PRAN-RFL মালেশিয়া — পণ্য যোগ করুন, তারপর কার্ট পাঠান",
-                    "PRAN-RFL मलेशिया — आइटम जोड़ें, फिर कार्ट भेजें",
                     "PRAN-RFL மலேசியா — பொருட்களை சேர்த்து கார்ட் அனுப்பவும்",
                     "PRAN-RFL 马来西亚 — 添加商品后发送购物车",
                     "PRAN-RFL Malaysia — Tambah item, kemudian hantar troli anda");
@@ -722,10 +638,6 @@ namespace crud_app_backend.Bot.Services
                         "পণ্য কার্টে যোগ করুন এবং *কার্ট পাঠান* অর্ডার দিতে!\n\n" +
                         "👉 *মেনু* — মূল মেনু",
 
-                        "👆 ऊपर *View Catalog* टैप करें।\n\n" +
-                        "आइटम कार्ट में जोड़ें और *कार्ट भेजें* ऑर्डर करने के लिए!\n\n" +
-                        "👉 *मेनू* — मुख्य मेनू",
-
                         "👆 மேலே *View Catalog* தட்டவும்.\n\n" +
                         "பொருட்களை கார்ட்டில் சேர்த்து *கார்ட் அனுப்பவும்*!\n\n" +
                         "👉 *மெனு* — முகப்பு மெனு",
@@ -743,12 +655,12 @@ namespace crud_app_backend.Bot.Services
                     _logger.LogError(ex, "[UAE] SendCatalogMessageAsync failed for {Phone}", msg.From);
                     // Graceful fallback — send the wa.me link instead
                     Transition(s, "MAIN_MENU");
-                    return   await BuildCatalogLinkMessage(s);
+                    return await BuildCatalogLinkMessage(s);
                 }
             }
 
-            // Option 3 — Website link
-            if (msg.RawText == "3")
+            // Option 2 — Website link
+            if (msg.RawText == "2")
             {
                 Transition(s, "MAIN_MENU");
                 return s.T(
@@ -756,8 +668,6 @@ namespace crud_app_backend.Bot.Services
                     "👉 Send *menu* for Main Menu",
                     $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 *মেনু* — মূল মেনু",
-                    $"🌐 *हमारी वेबसाइट पर ऑर्डर करें:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
-                    "👉 *मेनू* — मुख्य मेनू",
                     $"🌐 *எங்கள் இணையதளத்தில் ஆர்டர் செய்யுங்கள்:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
                     "👉 *மெனு* — முகப்பு மெனு",
                     $"🌐 *请在我们的网站上下单：*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
@@ -782,8 +692,6 @@ namespace crud_app_backend.Bot.Services
                     "👉 Send *menu* for Main Menu",
                     $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 *মেনু* — মূল মেনু",
-                    $"🌐 *हमारी वेबसाइट पर वापसी अनुरोध करें:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
-                    "👉 *मेनू* — मुख्य मेनू",
                     $"🌐 *எங்கள் இணையதளத்தில் திரும்பப்பெறும் கோரிக்கையை சமர்ப்பிக்கவும்:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
                     "👉 *மெனு* — முகப்பு மெனு",
                     $"🌐 *请在我们的网站上提交退货请求：*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
@@ -809,10 +717,6 @@ namespace crud_app_backend.Bot.Services
                 "1️⃣  সাপোর্ট এজেন্ট\n" +
                 "2️⃣  ওয়েবসাইট\n\n" +
                 "👉 *1* বা *2* পাঠান।\nমূল মেনুতে ফিরতে *0* পাঠান",
-                "आप कैसे आगे बढ़ना चाहते हैं?\n\n" +
-                "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  वेबसाइट\n\n" +
-                "👉 *1* या *2* भेजें।\nमुख्य मेनू पर जाने के लिए *0* भेजें",
                 "நீங்கள் எவ்வாறு தொடர விரும்புகிறீர்கள்?\n\n" +
                 "1️⃣  ஆதரவு முகவர்\n" +
                 "2️⃣  இணையதளம்\n\n" +
@@ -832,7 +736,7 @@ namespace crud_app_backend.Bot.Services
 
         private async Task<string> BuildCatalogLinkMessage(UaeSession s)
         {
-            var settings = await _catalog.GetSettingsAsync();  // ← ADD THIS
+            var settings = await _catalog.GetSettingsAsync();
             var link = $"https://wa.me/c/{settings.CatalogPhone}";
             return s.T(
                 $"🛍️ *Tap the link to browse our full catalog:*\n{link}\n\n" +
@@ -842,10 +746,6 @@ namespace crud_app_backend.Bot.Services
                 $"🛍️ *ক্যাটালগ দেখতে লিঙ্কে ক্লিক করুন:*\n{link}\n\n" +
                 "পণ্য কার্টে যোগ করুন এবং *কার্ট পাঠান*!\n\n" +
                 "👉 *মেনু* — মূল মেনু",
-
-                $"🛍️ *पूरा कैटलॉग देखने के लिए लिंक टैप करें:*\n{link}\n\n" +
-                "आइटम कार्ट में जोड़ें और *कार्ट भेजें*!\n\n" +
-                "👉 *मेनू* — मुख्य मेनू",
 
                 $"🛍️ *முழு பட்டியலை உலாவ இணைப்பை தட்டவும்:*\n{link}\n\n" +
                 "பொருட்களை கார்ட்டில் சேர்த்து *கார்ட் அனுப்பவும்*!\n\n" +
@@ -883,35 +783,12 @@ namespace crud_app_backend.Bot.Services
                 })
                 .ToList();
 
-
-
-
-
-        
-            //_logger.LogInformation(
-            //    "[UAE] Cart order from {Phone} — {Count} items, catalogId={Cat}",
-            //    msg.From, msg.CartItems.Count, msg.OrderCatalogId);
-
-            //// Build human-readable item list
-            //var itemLines = msg.CartItems
-            //    .Select(i => $"• {i.Sku} × {i.Qty}" +
-            //                 (i.Price > 0 ? $" @ {i.Price:F2} {i.Currency}" : ""))
-            //    .ToList();
-
             var total = msg.CartItems.Sum(i => i.Price * i.Qty);
             var currency = msg.CartItems.FirstOrDefault()?.Currency ?? "MYR";
 
             var totalLine = total > 0
                 ? $"\n\n*Total: {total:F2} {currency}*"
                 : string.Empty;
-
-            //var description =
-            //    $"WhatsApp Catalog Order — Shop: {s.ShopName ?? s.ShopCode}\n\n" +
-            //    string.Join("\n", itemLines) +
-            //    (total > 0 ? $"\n\nEstimated Total: {total:F2} {currency}" : "") +
-            //    (string.IsNullOrWhiteSpace(msg.OrderText) ? "" : $"\n\nCustomer note: {msg.OrderText}") +
-            //    $"\n\nCatalog ID: {msg.OrderCatalogId}";
-
 
             var description =
         $"WhatsApp Catalog Order — Shop: {s.ShopName ?? s.ShopCode}\n\n" +
@@ -948,12 +825,6 @@ namespace crud_app_backend.Bot.Services
                     "আমাদের টিম শীঘ্রই আপনার অর্ডার নিশ্চিত করবে।\n\n" +
                     "👉 *মেনু* — মূল মেনু",
 
-                    $"✅ *ऑर्डर प्राप्त हुआ!*\n\n" +
-                    $"{itemSummary}{totalLine}\n\n" +
-                    (result.TicketId != null ? $"टिकट ID: *{result.TicketId}*\n\n" : "") +
-                    "हमारी टीम जल्द आपके ऑर्डर की पुष्टि करेगी।\n\n" +
-                    "👉 *मेनू* — मुख्य मेनू",
-
                     $"✅ *ஆர்டர் பெறப்பட்டது!*\n\n" +
                     $"{itemSummary}{totalLine}\n\n" +
                     (result.TicketId != null ? $"டிக்கெட் ஐடி: *{result.TicketId}*\n\n" : "") +
@@ -977,8 +848,6 @@ namespace crud_app_backend.Bot.Services
                     "Please try again or send *S* to reach a support agent.",
                     $"❌ *অর্ডার সেভ করা যায়নি।*\n{result.Error}\n\n" +
                     "আবার চেষ্টা করুন বা *S* পাঠিয়ে এজেন্টের সাথে যোগাযোগ করুন।",
-                    $"❌ *ऑर्डर सेव नहीं हुआ।*\n{result.Error}\n\n" +
-                    "पुनः प्रयास करें या एजेंट के लिए *S* भेजें।",
                     $"❌ *ஆர்டரை சேமிக்க முடியவில்லை.*\n{result.Error}\n\n" +
                     "மீண்டும் முயற்சிக்கவும் அல்லது முகவருக்கு *S* அனுப்பவும்.",
                     $"❌ *无法保存您的订单。*\n{result.Error}\n\n" +
@@ -1019,11 +888,6 @@ namespace crud_app_backend.Bot.Services
                     "আমাদের সেলস টিম শীঘ্রই অর্ডার নিতে যোগাযোগ করবে।\n\n" +
                     "👉 *মেনু* — মূল মেনু\n",
 
-                    "✅ *ऑर्डर अनुरोध जमा हुआ*\n\n" +
-                    (result.TicketId != null ? $"टिकट ID : *{result.TicketId}*\n\n" : "") +
-                    "हमारी सेल्स टीम जल्द आपसे संपर्क कर ऑर्डर लेगी।\n\n" +
-                    "👉 *मेनू* — मुख्य मेनू\n",
-
                     "✅ *ஆர்டர் கோரிக்கை சமர்ப்பிக்கப்பட்டது*\n\n" +
                     (result.TicketId != null ? $"டிக்கெட் ஐடி : *{result.TicketId}*\n\n" : "") +
                     "எங்கள் விற்பனை குழு விரைவில் உங்களை தொடர்பு கொள்ளும்.\n\n" +
@@ -1041,7 +905,6 @@ namespace crud_app_backend.Bot.Services
                 : s.T(
                     $"❌ Request failed.\n{result.Error}\n\nSend *Y* to retry or *menu* for main menu.",
                     $"❌ ব্যর্থ।\n{result.Error}\n\n*Y* পাঠিয়ে আবার চেষ্টা করুন।",
-                    $"❌ विफल।\n{result.Error}\n\n*Y* भेजें पुनः प्रयास के लिए।",
                     $"❌ தோல்வி.\n{result.Error}\n\nமீண்டும் முயற்சிக்க *Y* அனுப்பவும்.",
                     $"❌ 请求失败。\n{result.Error}\n\n发送 *Y* 重试。",
                     $"❌ Permintaan gagal.\n{result.Error}\n\nHantar *Y* untuk cuba semula atau *menu* untuk menu utama.");
@@ -1053,43 +916,18 @@ namespace crud_app_backend.Bot.Services
 
         private string StartReturn(UaeSession s)
         {
-            Transition(s, "AWAITING_RETURN_CHANNEL");
+            Transition(s, "MAIN_MENU");
             return s.T(
-                "🔄 *How would you like to proceed?*\n\n" +
-                "1️⃣  Support Agent\n" +
-                "2️⃣  Website\n\n" +
-                "👉 Reply *1* or *2*.\n" +
-                "Send *0* to go back to main menu",
-
-                "🔄 *আপনি কীভাবে এগিয়ে যেতে চান?*\n\n" +
-                "1️⃣  সাপোর্ট এজেন্ট\n" +
-                "2️⃣  ওয়েবসাইট\n\n" +
-                "👉 *1* বা *2* পাঠান।\n" +
-                "মূল মেনুতে ফিরতে *0* পাঠান",
-
-                "🔄 *आप कैसे आगे बढ़ना चाहते हैं?*\n\n" +
-                "1️⃣  सपोर्ट एजेंट\n" +
-                "2️⃣  वेबसाइट\n\n" +
-                "👉 *1* या *2* भेजें।\n" +
-                "मुख्य मेनू पर जाने के लिए *0* भेजें",
-
-                "🔄 *நீங்கள் எவ்வாறு தொடர விரும்புகிறீர்கள்?*\n\n" +
-                "1️⃣  ஆதரவு முகவர்\n" +
-                "2️⃣  இணையதளம்\n\n" +
-                "👉 *1* அல்லது *2* அனுப்பவும்.\n" +
-                "முகப்பு மெனுவிற்கு திரும்ப *0* அனுப்பவும்",
-
-                "🔄 *您希望如何继续？*\n\n" +
-                "1️⃣  客服人员\n" +
-                "2️⃣  网站\n\n" +
-                "👉 请发送 *1* 或 *2*。\n" +
-                "发送 *0* 返回主菜单",
-
-                "🔄 *Bagaimana anda ingin meneruskan?*\n\n" +
-                "1️⃣  Ejen Sokongan\n" +
-                "2️⃣  Laman Web\n\n" +
-                "👉 Balas *1* atau *2*.\n" +
-                "Hantar *0* untuk kembali ke menu utama");
+                $"🌐 *Submit your return request on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
+                "👉 Send *menu* for Main Menu",
+                $"🌐 *আমাদের ওয়েবসাইটে রিটার্ন রিকোয়েস্ট করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
+                "👉 *মেনু* — মূল মেনু",
+                $"🌐 *எங்கள் இணையதளத்தில் திரும்பப்பெறும் கோரிக்கையை சமர்ப்பிக்கவும்:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
+                "👉 *மெனு* — முகப்பு மெனு",
+                $"🌐 *请在我们的网站上提交退货请求：*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
+                "👉 *menu* — 主菜单",
+                $"🌐 *Hantar permintaan pemulangan anda di laman web kami:*\nhttps://myorder.prangroup.com/?cont_id=14&order=0&shopCode={s.ShopCode}\n\n" +
+                "👉 *menu* — Menu Utama");
         }
 
         private string StartReturnDirect(UaeSession s)
@@ -1106,11 +944,6 @@ namespace crud_app_backend.Bot.Services
                 "যে পণ্যটি ফেরত দিতে চান তা জানান।\n\n" +
                 "*টেক্সট*, *ছবি* বা *ভয়েস* পাঠান\n\n" +
                 "👉 মূল মেনুতে ফিরতে *0* পাঠান",
-
-                "🔄 *वापसी / प्रतिस्थापन*\n\n" +
-                "जो उत्पाद वापस करना है उसके बारे में बताएं।\n\n" +
-                "*टेक्स्ट*, *फ़ोटो* या *आवाज़* भेजें\n\n" +
-                "👉 मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "🔄 *திரும்பப்பெறுதல் / மாற்றீடு*\n\n" +
                 "திரும்பப்பெற விரும்பும் தயாரிப்பை எங்களிடம் தெரிவிக்கவும்.\n\n" +
@@ -1154,11 +987,6 @@ namespace crud_app_backend.Bot.Services
                 "আপনার সমস্যা জানান।\n\n" +
                 "*টেক্সট*, *ছবি* বা *ভয়েস* পাঠান\n\n" +
                 "👉 মূল মেনুতে ফিরতে *0* পাঠান",
-
-                "📝 *शिकायत / फ़ीडबैक*\n\n" +
-                "अपनी समस्या बताएं।\n\n" +
-                "*टेक्स्ट*, *फ़ोटो* या *आवाज़* भेजें\n\n" +
-                "👉 मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "📝 *புகார் / கருத்து*\n\n" +
                 "உங்கள் சிக்கலை எங்களிடம் தெரிவிக்கவும்.\n\n" +
@@ -1214,7 +1042,6 @@ namespace crud_app_backend.Bot.Services
                     return s.T(
                         "⚠️ Image could not be uploaded. Please try again.",
                         "⚠️ ছবি আপলোড হয়নি। আবার পাঠান।",
-                        "⚠️ फ़ोटो अपलोड नहीं हुई। पुनः भेजें।",
                         "⚠️ படம் பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
                         "⚠️ 图片上传失败，请重试。",
                         "⚠️ Gambar tidak dapat dimuat naik. Sila cuba lagi.");
@@ -1242,7 +1069,6 @@ namespace crud_app_backend.Bot.Services
                     return s.T(
                         "⚠️ Voice note could not be uploaded. Please try again.",
                         "⚠️ ভয়েস আপলোড হয়নি। আবার পাঠান।",
-                        "⚠️ आवाज़ अपलोड नहीं हुई। पुनः भेजें।",
                         "⚠️ குரல் குறிப்பு பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
                         "⚠️ 语音消息上传失败，请重试。",
                         "⚠️ Nota suara tidak dapat dimuat naik. Sila cuba lagi.");
@@ -1254,36 +1080,49 @@ namespace crud_app_backend.Bot.Services
 
             Transition(s, confirmState);
 
+            //return s.T(
+            //    "✅ *Received.*\n\n" +
+            //    "Send *Y* to Complete the request or  To add more details, send another *Image*, *Voice* or *Text*\n" 
+            //   ,
+
+            //    "✅ *পাওয়া গেছে।*\n\n" +
+            //    "*Y* পাঠান জমা দিতে\n" +
+            //    "*N* পাঠান বাতিল করতে\n\n" +
+            //    "আরও যোগ করতে *ছবি*, *ভয়েস* বা *টেক্সট* পাঠান",
+
+            //    "✅ *பெறப்பட்டது.*\n\n" +
+            //    "சமர்ப்பிக்க *Y* அனுப்பவும்\n" +
+            //    "ரத்து செய்ய *N* அனுப்பவும்\n\n" +
+            //    "மேலும் சேர்க்க *படம்*, *குரல்* அல்லது *உரை* அனுப்பவும்",
+
+            //    "✅ *已收到。*\n\n" +
+            //    "发送 *Y* 提交\n" +
+            //    "发送 *N* 取消\n\n" +
+            //    "如需补充，请再发送*图片*、*语音*或*文字*",
+
+            //    "✅ *Diterima.*\n\n" +
+            //    "Hantar *Y* untuk hantar\n" +
+            //    "Hantar *N* untuk batal\n\n" +
+            //    "Untuk menambah butiran, hantar *Gambar*, *Suara* atau *Teks* lain");
+
+
+
             return s.T(
-                "✅ *Received.*\n\n" +
-                "Send *Y* to submit\n" +
-                "Send *N* to cancel\n\n" +
-                "To add more details, send another *Image*, *Voice* or *Text*",
+    "✅ *Received.*\n\n" +
+    "Send *Y* to Complete the request or To add more details, send another *Image*, *Voice* or *Text*",
 
-                "✅ *পাওয়া গেছে।*\n\n" +
-                "*Y* পাঠান জমা দিতে\n" +
-                "*N* পাঠান বাতিল করতে\n\n" +
-                "আরও যোগ করতে *ছবি*, *ভয়েস* বা *টেক্সট* পাঠান",
+    "✅ *পাওয়া গেছে।*\n\n" +
+    "অনুরোধ সম্পন্ন করতে *Y* পাঠান অথবা আরও তথ্য যোগ করতে *ছবি*, *ভয়েস* বা *টেক্সট* পাঠান",
 
-                "✅ *प्राप्त हुआ।*\n\n" +
-                "जमा करने के लिए *Y* भेजें\n" +
-                "रद्द करने के लिए *N* भेजें\n\n" +
-                "अधिक जोड़ने के लिए *फ़ोटो*, *आवाज़* या *टेक्स्ट* भेजें",
+    "✅ *பெறப்பட்டது.*\n\n" +
+    "கோரிக்கையை முடிக்க *Y* அனுப்பவும் அல்லது மேலும் விவரங்களைச் சேர்க்க மற்றொரு *படம்*, *குரல்* அல்லது *உரை* அனுப்பவும்",
 
-                "✅ *பெறப்பட்டது.*\n\n" +
-                "சமர்ப்பிக்க *Y* அனுப்பவும்\n" +
-                "ரத்து செய்ய *N* அனுப்பவும்\n\n" +
-                "மேலும் சேர்க்க *படம்*, *குரல்* அல்லது *உரை* அனுப்பவும்",
+    "✅ *已收到。*\n\n" +
+    "发送 *Y* 完成请求，或发送更多 *图片*、*语音* 或 *文字* 以补充详细信息",
 
-                "✅ *已收到。*\n\n" +
-                "发送 *Y* 提交\n" +
-                "发送 *N* 取消\n\n" +
-                "如需补充，请再发送*图片*、*语音*或*文字*",
-
-                "✅ *Diterima.*\n\n" +
-                "Hantar *Y* untuk hantar\n" +
-                "Hantar *N* untuk batal\n\n" +
-                "Untuk menambah butiran, hantar *Gambar*, *Suara* atau *Teks* lain");
+    "✅ *Diterima.*\n\n" +
+    "Hantar *Y* untuk melengkapkan permintaan atau hantar *Gambar*, *Suara* atau *Teks* lain untuk menambah maklumat"
+);
         }
 
         private async Task<string> SubmitMediaAsync(UaeSession s, string ticketType)
@@ -1306,14 +1145,13 @@ namespace crud_app_backend.Bot.Services
                 return s.T(
                     $"❌ Submission failed.\n{result.Error}\n\nSend *Y* to retry.",
                     $"❌ জমা ব্যর্থ।\n{result.Error}",
-                    $"❌ जमा विफल।\n{result.Error}",
                     $"❌ சமர்ப்பிப்பு தோல்வி.\n{result.Error}",
                     $"❌ 提交失败。\n{result.Error}",
                     $"❌ Penghantaran gagal.\n{result.Error}\n\nHantar *Y* untuk cuba semula.");
 
             var ticketLabel = ticketType == "PRODUCT_REPLACEMENT"
-                ? s.T("Return Request", "রিটার্ন রিকোয়েস্ট", "वापसी अनुरोध", "திரும்பப்பெறும் கோரிக்கை", "退货请求", "Permintaan Pemulangan")
-                : s.T("Complaint", "অভিযোগ", "शिकायत", "புகார்", "投诉", "Aduan");
+                ? s.T("Return Request", "রিটার্ন রিকোয়েস্ট", "திரும்பப்பெறும் கோரிக்கை", "退货请求", "Permintaan Pemulangan")
+                : s.T("Complaint", "অভিযোগ", "புகார்", "投诉", "Aduan");
 
             return s.T(
                 $"✅ *{ticketLabel} Submitted*\n\n" +
@@ -1325,11 +1163,6 @@ namespace crud_app_backend.Bot.Services
                 (result.TicketId != null ? $"টিকেট আইডি : *{result.TicketId}*\n\n" : "") +
                 "আমাদের টিম শীঘ্রই যোগাযোগ করবে।\n\n" +
                 "👉 *মেনু* — মূল মেনু\n",
-
-                $"✅ *{ticketLabel} जमा हुआ*\n\n" +
-                (result.TicketId != null ? $"टिकट ID : *{result.TicketId}*\n\n" : "") +
-                "हमारी टीम जल्द संपर्क करेगी।\n\n" +
-                "👉 *मेनू* — मुख्य मेनू\n",
 
                 $"✅ *{ticketLabel} சமர்ப்பிக்கப்பட்டது*\n\n" +
                 (result.TicketId != null ? $"டிக்கெட் ஐடி : *{result.TicketId}*\n\n" : "") +
@@ -1370,12 +1203,6 @@ namespace crud_app_backend.Bot.Services
                 "নিশ্চিত করতে *Y* পাঠান\n" +
                 "বাতিল করতে *N* পাঠান\n\n" +
                 "👉 মূল মেনুতে যেতে *0* পাঠান",
-
-                "📞 *सपोर्ट एजेंट*\n\n" +
-                "पुष्टि के बाद हमारा एजेंट आपसे संपर्क करेगा।\n\n" +
-                "*Y* भेजें पुष्टि करने के लिए\n" +
-                "*N* भेजें रद्द करने के लिए\n\n" +
-                "👉 मुख्य मेनू पर जाने के लिए *0* भेजें",
 
                 "📞 *ஆதரவு முகவர்*\n\n" +
                 "உறுதிப்படுத்திய பிறகு எங்கள் முகவர் உங்களை தொடர்பு கொள்வார்.\n\n" +
@@ -1427,11 +1254,6 @@ namespace crud_app_backend.Bot.Services
                     "একজন এজেন্ট শীঘ্রই যোগাযোগ করবে।\n\n" +
                     "👉 *মেনু* — মূল মেনু",
 
-                    "✅ *अनुरोध भेजा गया*\n\n" +
-                    (result.TicketId != null ? $"टिकट ID : *{result.TicketId}*\n\n" : "") +
-                    "एक एजेंट जल्द आपसे संपर्क करेगा।\n\n" +
-                    "👉 *मेनू* — मुख्य मेनू",
-
                     "✅ *கோரிக்கை அனுப்பப்பட்டது*\n\n" +
                     (result.TicketId != null ? $"டிக்கெட் ஐடி : *{result.TicketId}*\n\n" : "") +
                     "ஒரு முகவர் விரைவில் தொடர்பு கொள்வார்.\n\n" +
@@ -1449,7 +1271,6 @@ namespace crud_app_backend.Bot.Services
                 : s.T(
                     $"❌ Request failed.\n{result.Error}\n\nSend *S* to retry.",
                     $"❌ ব্যর্থ।\n{result.Error}",
-                    $"❌ विफल।\n{result.Error}",
                     $"❌ தோல்வி.\n{result.Error}",
                     $"❌ 请求失败。\n{result.Error}",
                     $"❌ Permintaan gagal.\n{result.Error}\n\nHantar *S* untuk cuba semula.");
@@ -1471,11 +1292,10 @@ namespace crud_app_backend.Bot.Services
             "Please choose your language:\n\n" +
             "1️⃣  English\n" +
             "2️⃣  বাংলা\n" +
-            "3️⃣  हिंदी\n" +
-            "4️⃣  தமிழ்\n" +
-            "5️⃣  中文\n" +
-            "6️⃣  Bahasa Melayu\n\n" +
-            "👉 Reply *1*, *2*, *3*, *4*, *5* or *6*.";
+            "3️⃣  தமிழ்\n" +
+            "4️⃣  中文\n" +
+            "5️⃣  Bahasa Melayu\n\n" +
+            "👉 Reply *1*, *2*, *3*, *4* or *5*.";
 
         // ─────────────────────────────────────────────────────────────────────
         // MEDIA SAVE
@@ -1638,7 +1458,6 @@ namespace crud_app_backend.Bot.Services
             s.T(
                 "❌ *Invalid input.*\n\n👉 Send *menu* to go to Main Menu.",
                 "❌ *অবৈধ ইনপুট।*\n\n👉 *menu* পাঠান।",
-                "❌ *अमान्य इनपुट।*\n\n👉 *menu* भेजें।",
                 "❌ *தவறான உள்ளீடு.*\n\n👉 *menu* அனுப்பவும்.",
                 "❌ *无效输入。*\n\n👉 发送 *menu* 返回主菜单。",
                 "❌ *Input tidak sah.*\n\n👉 Hantar *menu* untuk pergi ke Menu Utama.");
@@ -1674,10 +1493,6 @@ namespace crud_app_backend.Bot.Services
             { '\u09E6', '0' }, { '\u09E7', '1' }, { '\u09E8', '2' }, { '\u09E9', '3' },
             { '\u09EA', '4' }, { '\u09EB', '5' }, { '\u09EC', '6' }, { '\u09ED', '7' },
             { '\u09EE', '8' }, { '\u09EF', '9' },
-            // Devanagari (Hindi)
-            { '\u0966', '0' }, { '\u0967', '1' }, { '\u0968', '2' }, { '\u0969', '3' },
-            { '\u096A', '4' }, { '\u096B', '5' }, { '\u096C', '6' }, { '\u096D', '7' },
-            { '\u096E', '8' }, { '\u096F', '9' },
             // Fullwidth (Mandarin IME)
             { '\uFF10', '0' }, { '\uFF11', '1' }, { '\uFF12', '2' }, { '\uFF13', '3' },
             { '\uFF14', '4' }, { '\uFF15', '5' }, { '\uFF16', '6' }, { '\uFF17', '7' },
