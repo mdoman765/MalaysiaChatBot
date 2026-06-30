@@ -255,7 +255,8 @@ namespace crud_app_backend.Bot.Services
             if (msg.MsgType != "text" || string.IsNullOrWhiteSpace(msg.RawText))
                 return string.Empty;
 
-            var code = msg.RawText.Trim();
+            //var code = msg.RawText.Trim();
+            var code = ExtractShopCode(msg.RawText);
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
             var logoUrl = $"{baseUrl}/images/pran-rfl-logo.jpg";
 
@@ -309,6 +310,29 @@ namespace crud_app_backend.Bot.Services
             if (string.IsNullOrWhiteSpace(shopName)) return string.Empty;
             var pipeIdx = shopName.IndexOf(" | ", StringComparison.Ordinal);
             return pipeIdx > 0 ? shopName[..pipeIdx].Trim() : string.Empty;
+        }
+
+        private static string ExtractShopCode(string rawText)
+        {
+            if (string.IsNullOrWhiteSpace(rawText)) return rawText?.Trim() ?? "";
+
+            // Matches "code: 123456", "code : 123456", "(code 123456)", "code-123456" etc.
+            var match = System.Text.RegularExpressions.Regex.Match(
+                rawText,
+                @"code\s*[:\-]?\s*(\d{3,})",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (match.Success)
+                return match.Groups[1].Value.Trim();
+
+            // Fallback: if the text has no "code" keyword but contains a long
+            // numeric run (e.g. user just pastes the number alone), grab it.
+            var numMatch = System.Text.RegularExpressions.Regex.Match(rawText, @"\d{4,}");
+            if (numMatch.Success)
+                return numMatch.Value.Trim();
+
+            // No pattern matched — preserve original behaviour (whole text as code)
+            return rawText.Trim();
         }
 
         private async Task<(string SiteName, string Id, string OwnerName)?> ValidateShopAsync(string shopCode)
