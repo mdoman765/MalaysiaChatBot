@@ -101,7 +101,8 @@ namespace crud_app_backend.Bot.Services
 
         private string? GetAckMessage(UaeSession s, UaeIncomingMessage msg)
         {
-            if (s.State == "AWAITING_SHOP_CODE" && msg.MsgType == "text")
+            if (s.State == "AWAITING_SHOP_CODE" && msg.MsgType == "text"
+                && !ResetKeywords.Contains(msg.RawText))
                 return s.T(
                     "🔍 Verifying shop...",
                     "🔍 শপ যাচাই করা হচ্ছে...",
@@ -186,24 +187,17 @@ namespace crud_app_backend.Bot.Services
             if (msg.MsgType == "order" && msg.CartItems.Count > 0)
                 return await HandleCartOrderAsync(s, msg);
 
-            // ── Global resets ─────────────────────────────────────────────────
-            if (msg.MsgType == "text" && ResetKeywords.Contains(raw))
+            // ── INIT or reset keywords: funnel ALL first messages through shop code handler ──
+            if (s.State == "INIT" || (msg.MsgType == "text" && ResetKeywords.Contains(raw)))
             {
                 ResetSession(s);
-                Transition(s, "AWAITING_SHOP_CODE");
-                return string.Empty;
-            }
-
-            // ── INIT: QR code scan sends shop code immediately ────────────────
-            if (s.State == "INIT")
-            {
                 Transition(s, "AWAITING_SHOP_CODE");
                 return await HandleShopCodeAsync(s, msg);
             }
 
             // ── menu keyword: available to ALL users once past shop/lang steps ──
             if (msg.MsgType == "text" && MenuKeywords.Contains(raw)
-                && s.State != "INIT" && s.State != "AWAITING_SHOP_CODE" && s.State != "AWAITING_LANG")
+                && s.State != "AWAITING_SHOP_CODE" && s.State != "AWAITING_LANG")
                 return BuildMainMenu(s);
 
             // ── "s" shortcut: verified users only ────────────────────────────
@@ -262,10 +256,23 @@ namespace crud_app_backend.Bot.Services
                 return string.Empty;
 
             var code = msg.RawText.Trim();
-            var shop = await ValidateShopAsync(code);
-
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
             var logoUrl = $"{baseUrl}/images/pran-rfl-logo.jpg";
+
+            // ── If the text is a greeting/reset keyword, skip validation entirely ──
+            if (ResetKeywords.Contains(code))
+            {
+                s.ShopVerified = false;
+                s.ShopCode = string.Empty;
+                Transition(s, "AWAITING_LANG");
+                var greetMsg = "👋 Hi! Welcome to *PRAN-RFL Malaysia Sales Support*\n\n" +
+                               LangOptions();
+                await _dialog.SendImageAsync(msg.From, logoUrl, greetMsg);
+                return string.Empty;
+            }
+
+            // ── Normal path: treat input as a shop code and validate ──────────
+            var shop = await ValidateShopAsync(code);
 
             if (shop == null)
             {
@@ -360,19 +367,34 @@ namespace crud_app_backend.Bot.Services
         }
 
         /// <summary>
-        /// Verified shops see: 1=Place Order  2=Connect with Agent
-        /// Unverified shops see: 1=Connect with Agent only
+        /// Verified shops see:   1=Place Order  2=Connect with Agent  0=Change Language
+        /// Unverified shops see: 1=Connect with Agent  0=Change Language
         /// </summary>
         private static string BuildMainMenuBody(string lang, bool shopVerified = true)
         {
-            // ── Unverified: only agent option ─────────────────────────────────
+            // ── Unverified: agent + change language ───────────────────────────
             if (!shopVerified) return lang switch
             {
-                "bn" => "1️⃣  সাপোর্ট এজেন্ট\n\n👉 *1* পাঠান।",
-                "ta" => "1️⃣  ஆதரவு முகவர்\n\n👉 *1* அனுப்பவும்.",
-                "zh" => "1️⃣  联系客服\n\n👉 请发送 *1*。",
-                "ms" => "1️⃣  Hubungi Ejen Sokongan\n\n👉 Balas *1*.",
-                _ => "1️⃣  Connect with Agent\n\n👉 Reply *1*.",
+                "bn" =>
+                    "1️⃣  সাপোর্ট এজেন্ট\n" +
+                    "0️⃣  ভাষা পরিবর্তন\n\n" +
+                    "👉 *1* বা *0* পাঠান।",
+                "ta" =>
+                    "1️⃣  ஆதரவு முகவர்\n" +
+                    "0️⃣  மொழியை மாற்று\n\n" +
+                    "👉 *1* அல்லது *0* அனுப்பவும்.",
+                "zh" =>
+                    "1️⃣  联系客服\n" +
+                    "0️⃣  更改语言\n\n" +
+                    "👉 请发送 *1* 或 *0*。",
+                "ms" =>
+                    "1️⃣  Hubungi Ejen Sokongan\n" +
+                    "0️⃣  Tukar Bahasa\n\n" +
+                    "👉 Balas *1* atau *0*.",
+                _ =>
+                    "1️⃣  Connect with Agent\n" +
+                    "0️⃣  Change Language\n\n" +
+                    "👉 Reply *1* or *0*.",
             };
 
             // ── Verified: full menu ───────────────────────────────────────────
@@ -380,31 +402,36 @@ namespace crud_app_backend.Bot.Services
             {
                 "bn" =>
                     "1️⃣  অর্ডার দিন\n" +
-                    "2️⃣  সাপোর্ট এজেন্ট\n\n" +
-                    "👉 *1* বা *2* পাঠান।",
+                    "2️⃣  সাপোর্ট এজেন্ট\n" +
+                    "0️⃣  ভাষা পরিবর্তন\n\n" +
+                    "👉 *1*, *2* বা *0* পাঠান।",
                 "ta" =>
                     "1️⃣  ஆர்டர் செய்யுங்கள்\n" +
-                    "2️⃣  ஆதரவு முகவர்\n\n" +
-                    "👉 *1* அல்லது *2* அனுப்பவும்.",
+                    "2️⃣  ஆதரவு முகவர்\n" +
+                    "0️⃣  மொழியை மாற்று\n\n" +
+                    "👉 *1*, *2* அல்லது *0* அனுப்பவும்.",
                 "zh" =>
                     "1️⃣  下单\n" +
-                    "2️⃣  联系客服\n\n" +
-                    "👉 请发送 *1* 或 *2*。",
+                    "2️⃣  联系客服\n" +
+                    "0️⃣  更改语言\n\n" +
+                    "👉 请发送 *1*、*2* 或 *0*。",
                 "ms" =>
                     "1️⃣  Buat Pesanan\n" +
-                    "2️⃣  Hubungi Ejen Sokongan\n\n" +
-                    "👉 Balas *1* atau *2*.",
+                    "2️⃣  Hubungi Ejen Sokongan\n" +
+                    "0️⃣  Tukar Bahasa\n\n" +
+                    "👉 Balas *1*, *2* atau *0*.",
                 _ =>
                     "1️⃣  Place Order\n" +
-                    "2️⃣  Connect with Agent\n\n" +
-                    "👉 Reply *1* or *2*.",
+                    "2️⃣  Connect with Agent\n" +
+                    "0️⃣  Change Language\n\n" +
+                    "👉 Reply *1*, *2* or *0*.",
             };
         }
 
         /// <summary>
         /// Routes MAIN_MENU input.
-        /// Verified:   1 = Place Order (URL),  2 = Connect Agent (immediate ticket)
-        /// Unverified: 1 = Connect Agent (immediate ticket)
+        /// Verified:   1 = Place Order,  2 = Connect Agent,  0 = Change Language
+        /// Unverified: 1 = Connect Agent,                    0 = Change Language
         /// </summary>
         private Task<string> HandleMainMenu(UaeSession s, UaeIncomingMessage msg)
         {
@@ -412,6 +439,14 @@ namespace crud_app_backend.Bot.Services
 
             // Re-display menu for any menu keyword (safety net)
             if (MenuKeywords.Contains(msg.RawText)) return Task.FromResult(BuildMainMenu(s));
+
+            // ── 0: change language (available to all users) ───────────────────
+            if (msg.RawText == "0")
+            {
+                s.Lang = null;
+                Transition(s, "AWAITING_LANG");
+                return Task.FromResult(LangPrompt());
+            }
 
             if (!s.ShopVerified)
             {
@@ -831,8 +866,8 @@ namespace crud_app_backend.Bot.Services
             await _dialog.SendImageAsync(phone, logoUrl, LangPrompt(), ct);
         }
 
-        private static string LangPrompt() =>
-            "👋 Hi! I'm *PRAN-RFL Malaysia Sales Support*\n\n" +
+        /// <summary>Just the language options list — no intro line.</summary>
+        private static string LangOptions() =>
             "Please choose your language:\n\n" +
             "1️⃣  English\n" +
             "2️⃣  বাংলা\n" +
@@ -840,6 +875,11 @@ namespace crud_app_backend.Bot.Services
             "4️⃣  中文\n" +
             "5️⃣  Bahasa Melayu\n\n" +
             "👉 Reply *1*, *2*, *3*, *4* or *5*.";
+
+        /// <summary>Full language prompt shown after shop verification (valid or invalid code).</summary>
+        private static string LangPrompt() =>
+            "👋 Hi! I'm *PRAN-RFL Malaysia Sales Support*\n\n" +
+            LangOptions();
 
         // ─────────────────────────────────────────────────────────────────────
         // MEDIA SAVE
