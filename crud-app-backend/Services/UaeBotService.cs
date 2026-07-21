@@ -833,6 +833,14 @@ namespace crud_app_backend.Bot.Services
 
         private async Task<string> ConnectAgentAsync(UaeSession s)
         {
+            // ── Ack before hitting CRM ──────────────────────────────────────────
+            await _dialog.SendTextAsync(s.Phone, s.T(
+                "⏳ Connecting to Agent...",
+                "⏳ এজেন্টের সাথে সংযোগ করা হচ্ছে...",
+                "⏳ முகவருடன் இணைக்கிறோம்...",
+                "⏳ 正在连接客服...",
+                "⏳ Menghubungkan kepada ejen..."));
+
             var req = new UaeCrmRequest
             {
                 ShopCode = s.ShopCode ?? "",
