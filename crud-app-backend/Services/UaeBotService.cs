@@ -255,10 +255,39 @@ namespace crud_app_backend.Bot.Services
             if (msg.MsgType != "text" || string.IsNullOrWhiteSpace(msg.RawText))
                 return string.Empty;
 
-            //var code = msg.RawText.Trim();
-            var code = ExtractShopCode(msg.RawText);
             var baseUrl = _config["App:BaseUrl"]?.TrimEnd('/') ?? "https://webhook.prangroup.com";
             var logoUrl = $"{baseUrl}/images/pran-rfl-logo.jpg";
+
+            // ── Bare 6-character QR code (e.g. "2YU9Y7") — scanned via QR ──────
+            var qrCode = ExtractQrCode(msg.RawTextOriginal);
+            if (qrCode != null)
+            {
+                var qr = await CheckQrCodeAsync(qrCode);
+                s.QrCode = qrCode;
+
+                if (qr != null)
+                {
+                    s.ShopVerified = true;
+                    s.ShopCode = qr.Value.SiteCode;
+                    s.ShopName = qr.Value.SiteName;
+
+                    Transition(s, "AWAITING_LANG");
+                    var qrValidMsg = $"✅ *Hi, {qr.Value.SiteName}!* Shop Verified.\n\n" + LangPrompt();
+                    await _dialog.SendImageAsync(msg.From, logoUrl, qrValidMsg);
+                    return string.Empty;
+                }
+
+                s.ShopVerified = false;
+                // ShopCode intentionally left unset — the scanned QR code is
+                // NOT a shop code, and no site_code exists when the check fails.
+                Transition(s, "AWAITING_LANG");
+                var qrInvalidMsg = $"❌ *QR Code not recognised.* Please try again.\n\n" + LangPrompt();
+                await _dialog.SendImageAsync(msg.From, logoUrl, qrInvalidMsg);
+                return string.Empty;
+            }
+
+            //var code = msg.RawText.Trim();
+            var code = ExtractShopCode(msg.RawText);
 
             // ── If the text is a greeting/reset keyword, skip validation entirely ──
             if (ResetKeywords.Contains(code))
@@ -312,6 +341,20 @@ namespace crud_app_backend.Bot.Services
             return pipeIdx > 0 ? shopName[..pipeIdx].Trim() : string.Empty;
         }
 
+        /// <summary>
+        /// Detects a bare 6-character alphanumeric QR code (e.g. "2YU9Y7"),
+        /// distinct from the sentence/number-based shop code handled by
+        /// ExtractShopCode. Uppercased since the QR-check API expects/returns
+        /// uppercase codes.
+        /// </summary>
+        private static string? ExtractQrCode(string rawTextOriginal)
+        {
+            var trimmed = (rawTextOriginal ?? "").Trim();
+            return System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[A-Za-z0-9]{6}$")
+                ? trimmed.ToUpperInvariant()
+                : null;
+        }
+
         private static string ExtractShopCode(string rawText)
         {
             if (string.IsNullOrWhiteSpace(rawText)) return rawText?.Trim() ?? "";
@@ -333,6 +376,70 @@ namespace crud_app_backend.Bot.Services
 
             // No pattern matched — preserve original behaviour (whole text as code)
             return rawText.Trim();
+        }
+
+        /// <summary>
+        /// POST http://spro.prgfms.com/api/v3/siteQrCheck — validates a scanned
+        /// QR code and returns the matching shop's site_code/site_name.
+        /// country_id=14 for Malaysia. Uses the same ApiKey/base URL already
+        /// configured for the shared Spror QR-check service
+        /// (Spror:AgentApiKey / Spror:AgentBaseUrl).
+        /// </summary>
+        private async Task<(string SiteCode, string SiteName)?> CheckQrCodeAsync(string qrCode)
+        {
+            try
+            {
+                var apiKey = _config["Spror:AgentApiKey"] ?? "f06ff43be3310989";
+                var baseUrl = (_config["Spror:AgentBaseUrl"] ?? "http://spro.prgfms.com").TrimEnd('/');
+                var countryId = _config["Spror:QrCountryId"] ?? "14"; // Malaysia
+
+                // Default (unnamed) client — no inherited default headers to worry about.
+                var client = _httpFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(15);
+
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/v3/siteQrCheck")
+                {
+                    Content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["country_id"] = countryId,
+                        ["qr_code"] = qrCode
+                    })
+                };
+                request.Headers.TryAddWithoutValidation("ApiKey", apiKey);
+
+                _logger.LogInformation("[MY] CheckQrCode qr={Qr} countryId={Cid}", qrCode, countryId);
+                var resp = await client.SendAsync(request);
+
+                var json = await resp.Content.ReadAsStringAsync();
+                _logger.LogInformation("[MY] CheckQrCode {Code} response: {J}",
+                    (int)resp.StatusCode, json.Length > 400 ? json[..400] : json);
+
+                if (!resp.IsSuccessStatusCode) return null;
+
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                var status = root.TryGetProperty("status", out var stEl) ? stEl.GetString() : null;
+                var isRegistered = root.TryGetProperty("is_registered", out var irEl) &&
+                                    irEl.ValueKind == JsonValueKind.True;
+
+                if (status != "success" || !isRegistered) return null;
+
+                if (!root.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Object)
+                    return null;
+
+                var siteCode = dataEl.TryGetProperty("site_code", out var scEl) ? scEl.GetString() ?? "" : "";
+                var siteName = dataEl.TryGetProperty("site_name", out var snEl) ? snEl.GetString() ?? "" : "";
+
+                if (string.IsNullOrWhiteSpace(siteCode)) return null;
+
+                return (siteCode, siteName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MY] CheckQrCode failed qr={Qr}", qrCode);
+                return null;
+            }
         }
 
         private async Task<(string SiteName, string Id, string OwnerName)?> ValidateShopAsync(string shopCode)
@@ -1143,6 +1250,7 @@ namespace crud_app_backend.Bot.Services
         public string MsgType { get; set; } = "text";
         public long Timestamp { get; set; }
         public string RawText { get; set; } = "";
+        public string RawTextOriginal { get; set; } = "";
 
         // Audio
         public string AudioId { get; set; } = "";
@@ -1212,14 +1320,15 @@ namespace crud_app_backend.Bot.Services
 
                 // ── Text ─────────────────────────────────────────────────────
                 string rawText = string.Empty;
+                string rawTextOriginal = string.Empty;
                 if (msgType == "text" &&
                     msg.TryGetProperty("text", out var textEl) &&
                     textEl.TryGetProperty("body", out var bodyEl))
                 {
-                    rawText = NumeralNormaliser.Normalise(
-                        System.Text.RegularExpressions.Regex.Replace(
-                            (bodyEl.GetString() ?? "").Trim().ToLowerInvariant(),
-                            @"[\u200B-\u200D\uFEFF]", ""));
+                    rawTextOriginal = System.Text.RegularExpressions.Regex.Replace(
+                        (bodyEl.GetString() ?? "").Trim(),
+                        @"[\u200B-\u200D\uFEFF]", "");
+                    rawText = NumeralNormaliser.Normalise(rawTextOriginal.ToLowerInvariant());
                 }
 
                 // ── Audio ────────────────────────────────────────────────────
@@ -1272,6 +1381,7 @@ namespace crud_app_backend.Bot.Services
                     MsgType = msgType,
                     Timestamp = ts,
                     RawText = rawText,
+                    RawTextOriginal = rawTextOriginal,
                     AudioId = audioId,
                     AudioMime = audioMime,
                     ImageId = imageId,

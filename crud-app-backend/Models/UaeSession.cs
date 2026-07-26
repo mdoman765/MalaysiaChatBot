@@ -19,6 +19,7 @@ namespace crud_app_backend.Bot.Models
         public string? ShopCode { get; set; }
         public string? ShopUserId { get; set; }   // id from shopDetails API
         public string? ShopName { get; set; }
+        public string? QrCode { get; set; }       // raw scanned QR code (e.g. "2YU9Y7"), if used
 
         // Complaint / Return media
         public string MediaDescription { get; set; } = string.Empty;
@@ -59,6 +60,7 @@ namespace crud_app_backend.Bot.Models
                 s.ShopCode = Str(root, "shopCode");
                 s.ShopUserId = Str(root, "shopUserId");
                 s.ShopName = Str(root, "shopName");
+                s.QrCode = Str(root, "qrCode");
 
                 s.MediaDescription = Str(root, "mediaDescription") ?? string.Empty;
                 s.MediaImages = StrList(root, "mediaImages") ?? new();
