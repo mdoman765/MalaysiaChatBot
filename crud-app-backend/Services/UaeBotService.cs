@@ -101,7 +101,10 @@ namespace crud_app_backend.Bot.Services
 
         private string? GetAckMessage(UaeSession s, UaeIncomingMessage msg)
         {
-            if (s.State == "AWAITING_SHOP_CODE" && msg.MsgType == "text"
+            var isMidChatQrRecheck = !s.ShopVerified && msg.MsgType == "text"
+                && ExtractQrCode(msg.RawTextOriginal) != null;
+
+            if ((s.State == "AWAITING_SHOP_CODE" || isMidChatQrRecheck) && msg.MsgType == "text"
                 && !ResetKeywords.Contains(msg.RawText))
                 return s.T(
                     "🔍 Verifying shop...",
@@ -191,6 +194,18 @@ namespace crud_app_backend.Bot.Services
             if (s.State == "INIT" || (msg.MsgType == "text" && ResetKeywords.Contains(raw)))
             {
                 ResetSession(s);
+                Transition(s, "AWAITING_SHOP_CODE");
+                return await HandleShopCodeAsync(s, msg);
+            }
+
+            // ── Global QR re-verification: a QR code (2 letters + 4 digits) can
+            // be sent at ANY point in the conversation, not just during the
+            // initial shop-code step. As long as the shop is not yet verified,
+            // every such message must be (re-)checked before the user is
+            // allowed any further step — this overrides whatever state the
+            // session is currently in. ─────────────────────────────────────
+            if (!s.ShopVerified && msg.MsgType == "text" && ExtractQrCode(msg.RawTextOriginal) != null)
+            {
                 Transition(s, "AWAITING_SHOP_CODE");
                 return await HandleShopCodeAsync(s, msg);
             }
@@ -342,15 +357,15 @@ namespace crud_app_backend.Bot.Services
         }
 
         /// <summary>
-        /// Detects a bare 6-character alphanumeric QR code (e.g. "2YU9Y7"),
-        /// distinct from the sentence/number-based shop code handled by
-        /// ExtractShopCode. Uppercased since the QR-check API expects/returns
-        /// uppercase codes.
+        /// Detects a bare 6-character QR code in the fixed format
+        /// "2 letters + 4 digits" (e.g. "AB1234"), distinct from the
+        /// sentence/number-based shop code handled by ExtractShopCode.
+        /// Uppercased since the QR-check API expects/returns uppercase codes.
         /// </summary>
         private static string? ExtractQrCode(string rawTextOriginal)
         {
             var trimmed = (rawTextOriginal ?? "").Trim();
-            return System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[A-Za-z0-9]{6}$")
+            return System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[A-Za-z]{2}\d{4}$")
                 ? trimmed.ToUpperInvariant()
                 : null;
         }
@@ -597,20 +612,21 @@ namespace crud_app_backend.Bot.Services
         private string StartPlaceOrder(UaeSession s)
         {
             Transition(s, "MAIN_MENU");
+            var orderUrl = $"https://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}&phone={s.Phone}";
             return s.T(
-                $"🌐 *Place your order on our website:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                $"🌐 *Place your order on our website:*\n{orderUrl}\n\n" +
                 "👉 Send *menu* for Main Menu",
 
-                $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                $"🌐 *আমাদের ওয়েবসাইটে অর্ডার করুন:*\n{orderUrl}\n\n" +
                 "👉 *মেনু* — মূল মেনু",
 
-                $"🌐 *எங்கள் இணையதளத்தில் ஆர்டர் செய்யுங்கள்:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                $"🌐 *எங்கள் இணையதளத்தில் ஆர்டர் செய்யுங்கள்:*\n{orderUrl}\n\n" +
                 "👉 *மெனு* — முகப்பு மெனு",
 
-                $"🌐 *请在我们的网站上下单：*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                $"🌐 *请在我们的网站上下单：*\n{orderUrl}\n\n" +
                 "👉 *menu* — 主菜单",
 
-                $"🌐 *Buat pesanan anda di laman web kami:*\nhttps://myorder.prangroup.com/?cont_id=14&order=1&shopCode={s.ShopCode}\n\n" +
+                $"🌐 *Buat pesanan anda di laman web kami:*\n{orderUrl}\n\n" +
                 "👉 *menu* — Menu Utama");
         }
 
