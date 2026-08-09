@@ -187,13 +187,45 @@ namespace crud_app_backend.Bot.Services
             var raw = msg.RawText;
 
             // ── Cart order webhook — handled regardless of session state ──────
+            //if (msg.MsgType == "order" && msg.CartItems.Count > 0)
+            //    return await HandleCartOrderAsync(s, msg);
+
+
+            // Cart order — only allowed after shop is verified
             if (msg.MsgType == "order" && msg.CartItems.Count > 0)
+            {
+                if (!s.ShopVerified)
+                {
+                    Transition(s, "AWAITING_SHOP_CODE");
+                    return "❌ Please scan a valid registered QR code first to place an order.";
+                }
                 return await HandleCartOrderAsync(s, msg);
+            }
 
             // ── INIT or reset keywords: funnel ALL first messages through shop code handler ──
-            if (s.State == "INIT" || (msg.MsgType == "text" && ResetKeywords.Contains(raw)))
+            //if (s.State == "INIT" || (msg.MsgType == "text" && ResetKeywords.Contains(raw)))
+            //{
+            //    ResetSession(s);
+            //    Transition(s, "AWAITING_SHOP_CODE");
+            //    return await HandleShopCodeAsync(s, msg);
+            //}
+
+            // ── INIT: always start at shop/QR verification ────────────────────
+            if (s.State == "INIT")
             {
                 ResetSession(s);
+                Transition(s, "AWAITING_SHOP_CODE");
+                return await HandleShopCodeAsync(s, msg);
+            }
+
+            // ── hi / hello / start etc.
+            //    Verified  → main menu (keep ShopVerified, ShopCode, ShopName, QrCode)
+            //    Unverified → ask for QR (never language / menu) ────────────────
+            if (msg.MsgType == "text" && ResetKeywords.Contains(raw))
+            {
+                if (s.ShopVerified)
+                    return BuildMainMenu(s);
+
                 Transition(s, "AWAITING_SHOP_CODE");
                 return await HandleShopCodeAsync(s, msg);
             }
@@ -209,7 +241,11 @@ namespace crud_app_backend.Bot.Services
                 Transition(s, "AWAITING_SHOP_CODE");
                 return await HandleShopCodeAsync(s, msg);
             }
-
+            if (!s.ShopVerified)
+            {
+                Transition(s, "AWAITING_SHOP_CODE");
+                return await HandleShopCodeAsync(s, msg);
+            }
             // ── menu keyword: available to ALL users once past shop/lang steps ──
             if (msg.MsgType == "text" && MenuKeywords.Contains(raw)
                 && s.State != "AWAITING_SHOP_CODE" && s.State != "AWAITING_LANG")
@@ -292,11 +328,24 @@ namespace crud_app_backend.Bot.Services
                     return string.Empty;
                 }
 
+                //s.ShopVerified = false;
+                //// ShopCode intentionally left unset — the scanned QR code is
+                //// NOT a shop code, and no site_code exists when the check fails.
+                //Transition(s, "AWAITING_LANG");
+                //var qrInvalidMsg = $"❌ *QR Code not recognised.* Please try again.\n\n" + LangPrompt();
+                //await _dialog.SendImageAsync(msg.From, logoUrl, qrInvalidMsg);
+                //return string.Empty;
+
+
                 s.ShopVerified = false;
                 // ShopCode intentionally left unset — the scanned QR code is
                 // NOT a shop code, and no site_code exists when the check fails.
-                Transition(s, "AWAITING_LANG");
-                var qrInvalidMsg = $"❌ *QR Code not recognised.* Please try again.\n\n" + LangPrompt();
+                // Stay on AWAITING_SHOP_CODE — do NOT show language selection
+                // until a registered QR succeeds.
+                Transition(s, "AWAITING_SHOP_CODE");
+                var qrInvalidMsg =
+                    "❌ *QR Code not recognised / not registered.*\n\n" +
+                    "Please scan a valid registered QR code and try again.";
                 await _dialog.SendImageAsync(msg.From, logoUrl, qrInvalidMsg);
                 return string.Empty;
             }
@@ -305,13 +354,25 @@ namespace crud_app_backend.Bot.Services
             var code = ExtractShopCode(msg.RawText);
 
             // ── If the text is a greeting/reset keyword, skip validation entirely ──
+            //if (ResetKeywords.Contains(code))
+            //{
+            //    s.ShopVerified = false;
+            //    s.ShopCode = string.Empty;
+            //    Transition(s, "AWAITING_LANG");
+            //    var greetMsg = "👋 Hi! Welcome to *PRAN-RFL Malaysia Sales Support*\n\n" +
+            //                   LangOptions();
+            //    await _dialog.SendImageAsync(msg.From, logoUrl, greetMsg);
+            //    return string.Empty;
+            //}
+
             if (ResetKeywords.Contains(code))
             {
                 s.ShopVerified = false;
                 s.ShopCode = string.Empty;
-                Transition(s, "AWAITING_LANG");
-                var greetMsg = "👋 Hi! Welcome to *PRAN-RFL Malaysia Sales Support*\n\n" +
-                               LangOptions();
+                Transition(s, "AWAITING_SHOP_CODE");
+                var greetMsg =
+                    "👋 Hi! Welcome to *PRAN-RFL Malaysia Sales Support*\n\n" +
+                    "Please scan a valid registered QR code to continue.";
                 await _dialog.SendImageAsync(msg.From, logoUrl, greetMsg);
                 return string.Empty;
             }
@@ -319,12 +380,26 @@ namespace crud_app_backend.Bot.Services
             // ── Normal path: treat input as a shop code and validate ──────────
             var shop = await ValidateShopAsync(code);
 
+            //if (shop == null)
+            //{
+            //    s.ShopVerified = false;
+            //    s.ShopCode = code;
+            //    Transition(s, "AWAITING_LANG");
+            //    var invalidMsg = $"❌ *Shop Code not found.* *{code}* is not recognised.\n\n" + LangPrompt();
+            //    await _dialog.SendImageAsync(msg.From, logoUrl, invalidMsg);
+            //    return string.Empty;
+            //}
+
             if (shop == null)
             {
                 s.ShopVerified = false;
                 s.ShopCode = code;
-                Transition(s, "AWAITING_LANG");
-                var invalidMsg = $"❌ *Shop Code not found.* *{code}* is not recognised.\n\n" + LangPrompt();
+                // Stay on AWAITING_SHOP_CODE — do NOT show language selection
+                // until a valid shop code / registered QR succeeds.
+                Transition(s, "AWAITING_SHOP_CODE");
+                var invalidMsg =
+                    $"❌ *Shop Code not found.* *{code}* is not recognised.\n\n" +
+                    "Please scan a valid registered QR code or enter a correct shop code and try again.";
                 await _dialog.SendImageAsync(msg.From, logoUrl, invalidMsg);
                 return string.Empty;
             }
